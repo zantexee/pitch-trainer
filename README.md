@@ -188,6 +188,7 @@ Silence tests: digital silence, quiet room noise after calibration, and loud whi
 - **Root drone** toggle: hums the tonic underneath (it pauses while you sing on the speaker, so the mic can hear you; with headphones it stays on).
 - **Play**: tap any key in the scale (others are dimmed), or loop the scale up and down at slow / medium / fast.
 - **Sing it**: each note plays, then the app waits until you sing it and hold it for 0.5 s within ±35¢ (no time limit; *Hear it*, *Skip note*). Setup folds away while you sing so the pitch display fits. Each note is saved as an attempt.
+- **Headphones + Drone**: the note sounds the whole time from the start (and the root drone, if on). Sing over it; as soon as you match, it slides straight to the next note. No *Hear it* step. A headphones switch sits on the Sing it tab.
 - **Stop** cuts every sound at once.
 
 ### Polish, onboarding, voice care, settings, backup (M5)
