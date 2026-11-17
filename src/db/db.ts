@@ -33,6 +33,12 @@ export interface Settings {
   ladderKey: 'cadence' | 'drone';
   /** note labels in Scale Ladder */
   labelMode: 'names' | 'degrees' | 'solfege';
+  /** last Higher-or-lower difference, so the staircase resumes where it left off */
+  hlDelta: number | null;
+  earDegree: AdaptiveState | null;
+  earInterval: AdaptiveState | null;
+  earOctave: AdaptiveState | null;
+  noteOfDay: { date: string; midi: number; memorisedAt: number | null; result: { cents: number | null; octave: number; ts: number } | null } | null;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -55,6 +61,11 @@ export const DEFAULT_SETTINGS: Settings = {
   ladderTimed: false,
   ladderKey: 'cadence',
   labelMode: 'names',
+  hlDelta: null,
+  earDegree: null,
+  earInterval: null,
+  earOctave: null,
+  noteOfDay: null,
 };
 
 interface KV {
@@ -108,6 +119,18 @@ export async function loadRangeHistory(): Promise<RangeRecord[]> {
 export async function addRangeRecord(range: VoiceRange): Promise<RangeRecord[]> {
   const list = [...(await loadRangeHistory()), { ts: Date.now(), range }];
   await db.kv.put({ key: 'rangeHistory', value: list });
+  return list;
+}
+
+/** Small append-only lists in the kv table (threshold history etc.). */
+export async function loadList<T>(key: string): Promise<T[]> {
+  const row = await db.kv.get(key);
+  return (row?.value as T[]) ?? [];
+}
+
+export async function appendList<T>(key: string, item: T, max = 500): Promise<T[]> {
+  const list = [...(await loadList<T>(key)), item].slice(-max);
+  await db.kv.put({ key, value: list });
   return list;
 }
 

@@ -7,6 +7,12 @@ import { DroneMode } from './screens/DroneMode';
 import { PitchMatch } from './screens/PitchMatch';
 import { OctaveJump } from './screens/OctaveJump';
 import { ScaleLadder } from './screens/ScaleLadder';
+import { EarHub } from './screens/ear/EarHub';
+import { HigherLower } from './screens/ear/HigherLower';
+import { ScaleDegrees } from './screens/ear/ScaleDegrees';
+import { Intervals } from './screens/ear/Intervals';
+import { WhichOctave } from './screens/ear/WhichOctave';
+import { NoteOfDay } from './screens/ear/NoteOfDay';
 import { AudioGate } from './ui/AudioGate';
 import { mic, live, drone } from './audio';
 import { keepAwake } from './lib/wakeLock';
@@ -19,6 +25,11 @@ const SCREENS: Record<string, () => ReactNode> = {
   '/match': () => <PitchMatch />,
   '/octave': () => <OctaveJump />,
   '/ladder': () => <ScaleLadder />,
+  '/ear/higher-lower': () => <HigherLower />,
+  '/ear/degrees': () => <ScaleDegrees />,
+  '/ear/intervals': () => <Intervals />,
+  '/ear/octave': () => <WhichOctave />,
+  '/ear/note-of-day': () => <NoteOfDay />,
 };
 
 export function App() {
@@ -37,5 +48,5 @@ export function App() {
     window.scrollTo(0, 0);
   }, [screen]);
 
-  return <div className="app">{screen ? <AudioGate key={route}>{screen()}</AudioGate> : <Home />}</div>;
+  return <div className="app">{screen ? <AudioGate key={route}>{screen()}</AudioGate> : route === '/ear' ? <EarHub /> : <Home />}</div>;
 }

@@ -14,6 +14,8 @@ export interface ListenOptions extends AttemptOptions {
   silenceEndMs?: number;
   /** Keep listening this long after the lock (ms) so the trace looks complete. */
   afterLockMs?: number;
+  /** End once the voice has been heard for this long, locked or not (ms). */
+  maxVoicedMs?: number;
   /** Stop as soon as locked (default true). */
   stopOnLock?: boolean;
   chime?: boolean;
@@ -69,6 +71,7 @@ export function listen(targetHz: number, o: ListenOptions): Promise<ListenResult
       const now = performance.now();
       if (attempt.locked && stopOnLock && attempt.lockedAt != null && now - t0 > attempt.lockedAt + afterLock) return void finish(false);
       if (heardAt != null && now - lastVoiced > silenceEnd) return void finish(false);
+      if (o.maxVoicedMs != null && heardAt != null && now - heardAt > o.maxVoicedMs) return void finish(false);
       if (now - t0 > o.maxMs) return void finish(false);
     }, 30);
   });

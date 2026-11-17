@@ -43,6 +43,10 @@ export function Home() {
           <strong>Scale Ladder</strong>
           <span className="muted small">Sing up and down the scale</span>
         </button>
+        <button className="mode" onClick={() => go('/ear')}>
+          <strong>Ear training</strong>
+          <span className="muted small">Silent drills, no singing</span>
+        </button>
         <button className="mode" onClick={() => go('/drone')}>
           <strong>Drone</strong>
           <span className="muted small">Sustained notes, holds, intervals, slides</span>

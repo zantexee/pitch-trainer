@@ -2,7 +2,7 @@
 
 A pitch-training Progressive Web App for iPhone (and desktop): singing pitch with live mic feedback, plus silent ear-training drills. No backend, no accounts, no analytics. Audio is never uploaded or kept.
 
-**Status: Milestone 2.** On top of the M0 audio foundation it has the voice range finder, Drone mode (free singing, holds, scale degrees, slides), Pitch Match with adaptive difficulty, Octave Jump, Scale Ladder, and the shared feedback UI (live trace, cents needle, result card). The daily session, streaks and progress screens come in M4 (see [Roadmap](#roadmap)).
+**Status: Milestone 3.** On top of the M0 audio foundation it has the voice range finder, Drone mode (free singing, holds, scale degrees, slides), Pitch Match with adaptive difficulty, Octave Jump, Scale Ladder, five listening-only ear drills, and the shared feedback UI (live trace, cents needle, result card). The daily session, streaks and progress screens come in M4 (see [Roadmap](#roadmap)).
 
 Live app: **https://zantexee.github.io/pitch-trainer/** (once GitHub Pages is enabled; see [Deploy](#deploy)).
 
@@ -117,6 +117,16 @@ All logic that needs testing is plain TypeScript without React or Web Audio, so 
   - Labels are note names by default, with toggles for degree numbers or solfège. With headphones the tonic drone keeps sounding under you. Without them the key is set and then the app goes silent, and ♪ Tonic replays it.
   - Every step is stored as an attempt (degree + note) for the scale-degree accuracy grid in M4.
 
+### Ear-only drills (M3)
+
+These are listening only, with no mic and the audio session left at `playback`, so they work on a bus or in bed. They live under **Ear training** on Home (`screens/ear/`, logic in `engine/ear.ts` and `engine/staircase.ts`).
+
+- **Higher or lower?** Two sine tones with a continuously varying base pitch (A3–E5), so you can't learn the notes. It uses a 2-down/1-up **staircase in cents** that starts at 100¢ and moves multiplicatively (×0.75 down, ×1.5 up, 1–300¢). Before the first reversal it moves down after every correct answer. The threshold estimate is the geometric mean of the last 6 reversals. It is saved every 15 trials and on leaving, and charted on a log scale. The staircase resumes where you left off.
+- **Scale degrees** (the backbone): an I–IV–V–I cadence sets the key, one note plays, you tap its degree, and the note then **resolves to the tonic** (2→1, 3→2→1, 4→3→2→1, 5→6→7→8, 6→7→8, 7→8). It starts with 1 vs 5 and adds one degree at a time (3, 4, 2, 6, 7) when you're above 85% over the last 12. The key changes every 5 trials, with a full cadence on each key change and a tonic chord otherwise.
+- **Intervals** start with 3 very different intervals (M2, P5, octave), interleaved from the start. Then it adds M3 → P4 → *descending* → m3 → M6 → *harmonic* → m7 → m6 → M7 → tritone → m2. Timbres rotate. A wrong answer replays the interval.
+- **Which octave?** mixes "Same note an octave apart, or a different note?" (the different note gets closer to the octave as you level up: ±5–7 → ±2–3 → ±1–2 → ±1 semitone) with "Is this C3 or C4?" (later 3 options and any natural note), across all five timbres.
+- **Note of the day** (experimental): hear a deterministic daily note from your chest range, played three times. Later, sing it from memory with no feedback while you sing. The result is shown in semitones (or "right note, wrong octave"), and the history is kept.
+
 ### Pitch detection
 
 - **Window:** 4096 samples when the target (or the current stable pitch) is below 110 Hz, otherwise 2048. With no target and no pitch yet it uses 4096, which is safe for low notes.
@@ -183,16 +193,17 @@ Run these on the phone and note the results in the table. The **Diagnostics** sc
 | 17 | Drone without headphones: duck-and-check gaps are short and the checks match what you sang | | | |
 | 18 | Pitch Match: lock chime plays; "Hear my attempt" plays back your voice | | | |
 | 19 | Octave Jump: chest ↔ falsetto pairs score the octave correctly (no false "octave low/high") | | | |
+| 21 | Ear drills with the mic indicator OFF (no orange dot) and the silent switch on/off | | | |
 | 20 | Scale Ladder: cadence is audible on the speaker; relaxed steps advance on lock; timed mode keeps up | | | |
 
-Already checked in desktop Chromium (headless, fake mic fed a C3 tone): the audio gate, all timbres and the drone run without errors, and the mic reads C3 at 130.81 Hz with clarity 1.00. For M2, Octave Jump (a C3 voice against a C4 target reads "Note ✓ · Octave ✗ (one octave low)", then the target plays) and Scale Ladder (cadence, then timed steps, then summary) run with no console errors. For M1, the range finder, Pitch Match (a C3 voice against a C4 target correctly reads "Right note, one octave low"), Drone free mode and the Hold / Slide challenges all run end to end with no console errors.
+Already checked in desktop Chromium (headless, fake mic fed a C3 tone): the audio gate, all timbres and the drone run without errors, and the mic reads C3 at 130.81 Hz with clarity 1.00. For M3, all five ear drills run through several trials (answers, feedback, resolutions, levels), and Note of the day goes from memorise to sing to result, with no console errors. For M2, Octave Jump (a C3 voice against a C4 target reads "Note ✓ · Octave ✗ (one octave low)", then the target plays) and Scale Ladder (cadence, then timed steps, then summary) run with no console errors. For M1, the range finder, Pitch Match (a C3 voice against a C4 target correctly reads "Right note, one octave low"), Drone free mode and the Hold / Slide challenges all run end to end with no console errors.
 
 ## Roadmap
 
 - **M0 (done):** audio foundation, Diagnostics, tests, PWA + deploy.
 - **M1 (done):** voice range finder, Drone mode, Pitch Match, shared feedback UI.
 - **M2 (done):** Octave Jump, Scale Ladder.
-- **M3:** ear-only drills.
+- **M3 (done):** ear-only drills.
 - **M4:** one-tap Start / Daily Mix, adaptive difficulty, weak-spot targeting, streaks, progress screens, surprises.
 - **M5:** polish, onboarding, vocal-health prompts, settings, export/import, accessibility.
 
