@@ -2,6 +2,8 @@ import Dexie, { type EntityTable } from 'dexie';
 import { DEFAULT_A4 } from '../lib/notes';
 import type { Timbre } from '../audio/synth';
 import type { DroneMode } from '../audio/drone';
+import type { VoiceRange } from '../lib/range';
+import type { AdaptiveState } from '../engine/adaptive';
 
 // All local data lives in IndexedDB. Nothing is uploaded anywhere.
 
@@ -14,6 +16,15 @@ export interface Settings {
   headphones: boolean;
   inputDeviceId: string | null;
   lowNoteTipShown: boolean;
+  /** Measured voice range; null until the range finder has run. */
+  range: VoiceRange | null;
+  /** Allow notes up to 2 semitones outside the measured range. */
+  stretch: boolean;
+  pitchMatch: AdaptiveState | null;
+  /** Drone hold challenge level: 0 = 1 s, 1 = 3 s, 2 = 5 s */
+  droneHoldLevel: number;
+  /** Notes Pitch Match has seen, with recent outcomes (for doubling and ears-only trials). */
+  noteHistory: Record<string, boolean[]>;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -25,6 +36,11 @@ export const DEFAULT_SETTINGS: Settings = {
   headphones: false,
   inputDeviceId: null,
   lowNoteTipShown: false,
+  range: null,
+  stretch: false,
+  pitchMatch: null,
+  droneHoldLevel: 0,
+  noteHistory: {},
 };
 
 interface KV {
@@ -63,6 +79,30 @@ export async function loadSettings(): Promise<Settings> {
 
 export async function saveSettings(s: Settings): Promise<void> {
   await db.kv.put({ key: 'settings', value: s });
+}
+
+export interface RangeRecord {
+  ts: number;
+  range: VoiceRange;
+}
+
+export async function loadRangeHistory(): Promise<RangeRecord[]> {
+  const row = await db.kv.get('rangeHistory');
+  return (row?.value as RangeRecord[]) ?? [];
+}
+
+export async function addRangeRecord(range: VoiceRange): Promise<RangeRecord[]> {
+  const list = [...(await loadRangeHistory()), { ts: Date.now(), range }];
+  await db.kv.put({ key: 'rangeHistory', value: list });
+  return list;
+}
+
+export async function saveAttempt(a: Omit<Attempt, 'id'>): Promise<void> {
+  try {
+    await db.attempts.add(a);
+  } catch {
+    /* storage full or blocked: training still works */
+  }
 }
 
 /** Ask the browser not to evict our data under storage pressure. */

@@ -33,6 +33,10 @@ export class Mic {
     this.engine = engine;
   }
 
+  get mediaStream(): MediaStream | null {
+    return this.stream;
+  }
+
   get active(): boolean {
     return !!this.stream && this.stream.getAudioTracks().some((t) => t.readyState === 'live');
   }

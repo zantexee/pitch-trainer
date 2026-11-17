@@ -2,7 +2,7 @@
 
 A pitch-training Progressive Web App for iPhone (and desktop): singing pitch with live mic feedback, plus silent ear-training drills. No backend, no accounts, no analytics. Audio is never uploaded or kept.
 
-**Status: Milestone 0, the audio foundation.** It has the tap-to-start audio gate, five synthesised timbres plus a drone, mic input with pitch detection and smoothing, and a Diagnostics screen. Training modes come in M1 to M5 (see [Roadmap](#roadmap)).
+**Status: Milestone 1.** On top of the M0 audio foundation it has the voice range finder, Drone mode (free singing, holds, scale degrees, slides), Pitch Match with adaptive difficulty, and the shared feedback UI (live trace, cents needle, result card). The daily session, streaks and progress screens come in M4 (see [Roadmap](#roadmap)).
 
 Live app: **https://zantexee.github.io/pitch-trainer/** (once GitHub Pages is enabled; see [Deploy](#deploy)).
 
@@ -88,6 +88,20 @@ tests/                Vitest suites + synthetic signal generator
 
 All logic that needs testing is plain TypeScript without React or Web Audio, so it runs in Node.
 
+### Training modules (M1)
+
+- **Voice range** (`screens/RangeFinder.tsx`, `lib/range.ts`) runs three guided glides: normal voice, falsetto, and lowest "bassy" voice. The low step is labelled experimental. A note counts when it's held within ±50¢ for 300 ms, and the lowest and highest such notes become the register's span. Results show on a keyboard, each end can be adjusted by a semitone, and every save is stored so the range-over-time chart grows. Spans narrower than 2 semitones are treated as "not detected". *Stretch* allows ±2 semitones beyond the range.
+- **Drone** (`screens/DroneMode.tsx`): pick a note on the keyboard (limited to your range) or roll a random one. Choose the timbre, voicing (root, +5th, +octave) and volume.
+  - *Free*: with headphones, a continuous needle plus a chime on lock. Without headphones it uses **duck-and-check**: every 3 s the drone fades out for 0.6 s, the mic measures you in the gap (`engine.openListenWindow`), and a ✓/↑/↓ chip shows the result.
+  - *Hold* (1 s → 3 s → 5 s, levels up on success), *Degrees* ("sing the 5th above the drone"), and *Slide* (alternates from above and from below; the attempt must start clearly on the right side). With headphones the drone keeps playing. Without them it plays for 2.5 s, fades out, and then you sing (call and response).
+- **Pitch Match** (`screens/PitchMatch.tsx`): note (1.2 s) → memory gap → sing and hold → score → result card → auto-next after 1.5 s unless you tap. Pause and Skip are always available. An interruption pauses the session.
+  - Difficulty levers (`engine/adaptive.ts`): tolerance 50/35/25/15¢, hold 0.5/1/1.5/2 s, gap 0.3/1/2/3 s, note spread 3/5/7/12 semitones, and timbre set (Bright → +Pure → all). Over the last 12 attempts (minimum 8), success above 90% raises one lever (round-robin) and below 70% lowers the most recently raised one.
+  - **Ears-only trials:** once a note has succeeded 3 times in a row, 35% of its trials hide the trace and needle until the result.
+  - **Doubling:** with headphones on, the first 3 times a note appears it keeps playing quietly while you sing, at 35% → 18% → 8% volume. Without headphones the mic would pick it up, so doubling is off.
+- **Feedback UI** (`ui/`): the scrolling trace is green inside tolerance, amber within 2× tolerance and grey otherwise. The needle shows a dot position plus an arrow word (↑ higher / ↓ lower / ✓ locked / "Right note, one octave low"), so direction never depends on colour alone. A hold-progress bar fills toward the lock, which plays a soft chime and a small pop. The result card shows your trace over the target, accuracy (mean |¢|), stability (SD), settle time, ▶ Target, 🎧 My attempt and Next.
+- **"Hear my attempt"** uses `MediaRecorder` in memory only. The recording is discarded when the next attempt starts or the screen closes.
+- Every attempt is stored in IndexedDB (`attempts` table: timestamp, module, target, result, cents error, octave error, settle time, stability, difficulty) for the M4 progress screens.
+
 ### Pitch detection
 
 - **Window:** 4096 samples when the target (or the current stable pitch) is below 110 Hz, otherwise 2048. With no target and no pitch yet it uses 4096, which is safe for low notes.
@@ -149,14 +163,17 @@ Run these on the phone and note the results in the table. The **Diagnostics** sc
 | 12 | Lock the screen mid-drone, unlock: overlay or sound resumes without a crash | | | |
 | 13 | Phone-call interruption (call yourself from another phone) | | | |
 | 14 | **Airplane mode**: app opens and works offline from the home screen | | | |
-| 15 | Leaving Diagnostics clears the orange mic indicator | | | |
+| 15 | Leaving any singing screen clears the orange mic indicator | | | |
+| 16 | Range finder: glides detect sensible chest / falsetto ends; low "bassy" step readable? | | | |
+| 17 | Drone without headphones: duck-and-check gaps are short and the checks match what you sang | | | |
+| 18 | Pitch Match: lock chime plays; "Hear my attempt" plays back your voice | | | |
 
-Already checked in desktop Chromium (headless, fake mic fed a C3 tone): the audio gate, all timbres and the drone run without errors, the mic reads C3 at 130.81 Hz with clarity 1.00, and the constraints table fills in.
+Already checked in desktop Chromium (headless, fake mic fed a C3 tone): the audio gate, all timbres and the drone run without errors, and the mic reads C3 at 130.81 Hz with clarity 1.00. For M1, the range finder, Pitch Match (a C3 voice against a C4 target correctly reads "Right note, one octave low"), Drone free mode and the Hold / Slide challenges all run end to end with no console errors.
 
 ## Roadmap
 
-- **M0 (this):** audio foundation, Diagnostics, tests, PWA + deploy.
-- **M1:** voice range finder, Drone mode, Pitch Match, shared feedback UI.
+- **M0 (done):** audio foundation, Diagnostics, tests, PWA + deploy.
+- **M1 (done):** voice range finder, Drone mode, Pitch Match, shared feedback UI.
 - **M2:** Octave Jump, Scale Ladder.
 - **M3:** ear-only drills.
 - **M4:** one-tap Start / Daily Mix, adaptive difficulty, weak-spot targeting, streaks, progress screens, surprises.

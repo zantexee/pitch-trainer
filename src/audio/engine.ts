@@ -207,10 +207,21 @@ export class AudioEngine {
     this.markSounding(untilCtxTime);
   }
 
+  private openFrom = 0;
+  private openTo = 0;
+
+  /** Let the mic listen in [from, to] (context time) even though a sustained sound is held — used by duck-and-check. */
+  openListenWindow(from: number, to: number): void {
+    this.openFrom = from;
+    this.openTo = to;
+  }
+
   /** True while the app is audible, plus `tailS` for room echo. */
   isSounding(tailS = 0.2): boolean {
     if (!this.ctx) return false;
-    return this.sustained.size > 0 || this.ctx.currentTime < this.soundingUntil + tailS;
+    const now = this.ctx.currentTime;
+    if (now >= this.openFrom && now <= this.openTo) return false;
+    return this.sustained.size > 0 || now < this.soundingUntil + tailS;
   }
 }
 
