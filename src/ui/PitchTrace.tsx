@@ -149,5 +149,5 @@ export function PitchTrace({ a4, targetHz = null, toleranceCents = 50, seconds =
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="trace" style={{ height }} aria-label="Live pitch trace" />;
+  return <canvas ref={canvasRef} className="trace" style={{ height }} role="img" aria-label="Live pitch trace: your pitch over the last few seconds against the target line" />;
 }

@@ -19,6 +19,7 @@ import { ScaleDegrees } from './ear/ScaleDegrees';
 import { Intervals } from './ear/Intervals';
 import { WhichOctave } from './ear/WhichOctave';
 import { NoteOfDay } from './ear/NoteOfDay';
+import { WarmUp } from './WarmUp';
 
 // Daily Mix runner: a sequence of short rounds, each a different exercise,
 // with a countdown. Time-up waits for the current trial to finish so you're
@@ -48,6 +49,7 @@ const DESCRIBE: Record<RoundType, string> = {
   'ear-hl': 'Is the second tone higher or lower?',
   'ear-intervals': 'Name the interval',
   'ear-octave': 'Which octave was it?',
+  warmup: 'Gentle sirens to get your voice going. No scoring.',
 };
 
 const DRONE_TEXT: Record<string, string> = { hold: 'Hold steady on the drone', degree: 'Sing intervals over the drone', slide: 'Slide onto the drone note' };
@@ -71,6 +73,8 @@ function roundEl(r: Round): ReactNode {
       return <Intervals />;
     case 'ear-octave':
       return <WhichOctave />;
+    case 'warmup':
+      return <WarmUp />;
   }
 }
 
@@ -84,7 +88,7 @@ function initial(): SavedSession {
   const minutes = it?.kind === 'new' ? it.minutes : st.sessionMinutes;
   const silent = it?.kind === 'new' ? it.silent : st.silentMode;
   const ndPending = !!(st.noteOfDay?.date === today && st.noteOfDay.memorisedAt && !st.noteOfDay.result && Date.now() - st.noteOfDay.memorisedAt > 3600e3);
-  const plan = buildSession({ minutes, dateKey: today, rand: Math.random, silent, noteOfDayPending: ndPending });
+  const plan = buildSession({ minutes, dateKey: today, rand: Math.random, silent, noteOfDayPending: ndPending, warmup: st.warmup });
   return { date: today, plan, index: 0, remaining: plan.rounds[0].seconds, results: [] };
 }
 
@@ -141,7 +145,10 @@ export function Session() {
   }, [phase]);
 
   useEffect(() => {
-    if (phase === 'round' && remaining === 0 && !wrap) setWrap(true);
+    if (phase === 'round' && remaining === 0 && !wrap) {
+      if (round?.type === 'warmup') finishRound();
+      else setWrap(true);
+    }
   }, [phase, remaining, wrap]);
 
   // Time's up: let the current trial finish, but don't wait forever.
@@ -315,6 +322,7 @@ export function Session() {
 
 function Summary({ plan, results, ended, practiceToday, onOneMore }: { plan: SessionPlan; results: RoundResult[]; ended: boolean; startToday: number; practiceToday: number; onOneMore: () => void }) {
   const streak = streakNow();
+  results = results.filter((r) => r.type !== 'warmup');
   const n = results.reduce((a, r) => a + r.n, 0);
   const ok = results.reduce((a, r) => a + r.ok, 0);
   const secs = results.reduce((a, r) => a + r.seconds, 0);

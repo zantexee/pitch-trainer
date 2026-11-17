@@ -54,6 +54,15 @@ export interface Settings {
   weeklyGoal: number;
   /** an unfinished Daily Mix, to continue later today */
   activeSession: SavedSession | null;
+  /** first-run flow done */
+  onboarded: boolean;
+  /** 60 s warm-up at the start of singing sessions */
+  warmup: boolean;
+  /** "Voice break?" after this many minutes of singing in a day; 0 = off */
+  voiceBreakMin: number;
+  /** today's voice-break state: prompt again after `snoozeAt` seconds of singing */
+  voiceBreak: { date: string; snoozeAt: number } | null;
+  healthTipShown: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -90,6 +99,11 @@ export const DEFAULT_SETTINGS: Settings = {
   streakMode: 'daily',
   weeklyGoal: 4,
   activeSession: null,
+  onboarded: false,
+  warmup: false,
+  voiceBreakMin: 20,
+  voiceBreak: null,
+  healthTipShown: false,
 };
 
 interface KV {

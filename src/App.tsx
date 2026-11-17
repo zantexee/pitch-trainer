@@ -17,6 +17,11 @@ import { Session } from './screens/Session';
 import { Progress } from './screens/Progress';
 import { AudioGate } from './ui/AudioGate';
 import { usePracticeClock } from './lib/practice';
+import { Settings } from './screens/Settings';
+import { Onboarding } from './screens/Onboarding';
+import { VoiceBreak } from './ui/VoiceBreak';
+import { ErrorBoundary } from './ui/ErrorBoundary';
+import { isSettingsLoaded, useSettings } from './lib/settings';
 import { mic, live, drone } from './audio';
 import { keepAwake } from './lib/wakeLock';
 import { discardRecording } from './audio/recorder';
@@ -38,6 +43,7 @@ const SCREENS: Record<string, () => ReactNode> = {
 
 export function App() {
   const route = useRoute();
+  const s = useSettings();
   const screen = SCREENS[route];
   // practice time counts on every training screen (not the sound lab)
   usePracticeClock(!!screen && route !== '/diagnostics');
@@ -54,5 +60,24 @@ export function App() {
     window.scrollTo(0, 0);
   }, [screen]);
 
-  return <div className="app">{screen ? <AudioGate key={route}>{screen()}</AudioGate> : route === '/ear' ? <EarHub /> : route === '/progress' ? <Progress /> : <Home />}</div>;
+  const firstRun = isSettingsLoaded() && !s.onboarded && !s.range && route === '/';
+  const top = (): ReactNode => {
+    if (route === '/welcome' || firstRun) return <Onboarding />;
+    if (!isSettingsLoaded() && route === '/') return null;
+    if (route === '/ear') return <EarHub />;
+    if (route === '/progress') return <Progress />;
+    if (route === '/settings') return <Settings />;
+    return <Home />;
+  };
+  // Voice break only where you sing (not on ear drills, which are silent).
+  const singing = !!screen && !route.startsWith('/ear/') && route !== '/diagnostics';
+
+  return (
+    <div className="app">
+      <ErrorBoundary resetKey={route}>
+        {screen ? <AudioGate key={route}>{screen()}</AudioGate> : top()}
+      </ErrorBoundary>
+      {singing && <VoiceBreak />}
+    </div>
+  );
 }

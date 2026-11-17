@@ -1,6 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { db } from '../db/db';
-import { engine } from '../audio';
+import { engine, mic } from '../audio';
 import { dateKey } from '../engine/dates';
 import { computeStreak, MIN_SECONDS, type PracticeLog, type StreakState } from '../engine/streaks';
 import { getSettings } from './settings';
@@ -12,16 +12,18 @@ import { getSettings } from './settings';
 interface PracticeData {
   log: PracticeLog;
   sessions: number[];
+  /** seconds with the mic open, per day (for the voice-break prompt) */
+  singing: PracticeLog;
 }
 
-let data: PracticeData = { log: {}, sessions: [] };
+let data: PracticeData = { log: {}, sessions: [], singing: {} };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
 export const practiceReady = (async () => {
   try {
-    const [log, sessions] = await Promise.all([db.kv.get('practiceLog'), db.kv.get('sessions')]);
-    data = { log: (log?.value as PracticeLog) ?? {}, sessions: (sessions?.value as number[]) ?? [] };
+    const [log, sessions, singing] = await Promise.all([db.kv.get('practiceLog'), db.kv.get('sessions'), db.kv.get('singingLog')]);
+    data = { log: (log?.value as PracticeLog) ?? {}, sessions: (sessions?.value as number[]) ?? [], singing: (singing?.value as PracticeLog) ?? {} };
     emit();
   } catch {
     /* private mode etc. */
@@ -31,11 +33,13 @@ export const practiceReady = (async () => {
 function save() {
   void db.kv.put({ key: 'practiceLog', value: data.log }).catch(() => {});
   void db.kv.put({ key: 'sessions', value: data.sessions }).catch(() => {});
+  void db.kv.put({ key: 'singingLog', value: data.singing }).catch(() => {});
 }
 
-export function addPractice(seconds: number, now = Date.now()) {
+export function addPractice(seconds: number, now = Date.now(), singing = false) {
   const k = dateKey(new Date(now));
   data = { ...data, log: { ...data.log, [k]: (data.log[k] ?? 0) + seconds } };
+  if (singing) data.singing = { ...data.singing, [k]: (data.singing[k] ?? 0) + seconds };
   save();
   emit();
 }
@@ -58,6 +62,7 @@ export function streakNow(p: PracticeData = data): StreakState {
 }
 
 export const todaySeconds = (p: PracticeData = data) => p.log[dateKey()] ?? 0;
+export const singingToday = (p: PracticeData = data) => p.singing[dateKey()] ?? 0;
 
 const TICK_S = 5;
 
@@ -70,7 +75,7 @@ export function usePracticeClock(active: boolean) {
     const id = setInterval(() => {
       if (document.visibilityState !== 'visible' || engine.status !== 'running') return;
       visit += TICK_S;
-      addPractice(TICK_S);
+      addPractice(TICK_S, Date.now(), mic.active);
       if (!counted && visit >= MIN_SECONDS) {
         counted = true;
         addSession();

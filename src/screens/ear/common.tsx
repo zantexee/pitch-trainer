@@ -46,8 +46,8 @@ export function EarShell({ title, score, children }: { title: string; score?: { 
 export type Feedback = { correct: boolean; answer: string } | null;
 
 export function FeedbackLine({ fb }: { fb: Feedback }) {
-  if (!fb) return <div className="ear-fb" />;
-  return <div className={`ear-fb ${fb.correct ? 'ok' : 'no'}`}>{fb.correct ? '✓ Right' : `✗ It was ${fb.answer}`}</div>;
+  if (!fb) return <div className="ear-fb" aria-live="polite" />;
+  return <div className={`ear-fb ${fb.correct ? 'ok' : 'no'}`} aria-live="polite">{fb.correct ? '✓ Right' : `✗ It was ${fb.answer}`}</div>;
 }
 
 /** Answer buttons in a grid; the correct one is highlighted after answering. */

@@ -3,7 +3,8 @@ import { dayIndex } from './dates';
 // Session builder: one tap → a Daily Mix of 60–90 s rounds, a different
 // exercise each round, themed by day, with an occasional surprise bonus.
 
-export type RoundType = 'match' | 'octave' | 'ladder' | 'drone' | 'ear-degrees' | 'ear-hl' | 'ear-intervals' | 'ear-octave';
+export type RoundType = 'match' | 'octave' | 'ladder' | 'drone' | 'ear-degrees' | 'ear-hl' | 'ear-intervals' | 'ear-octave' | 'warmup';
+export type DrillType = Exclude<RoundType, 'warmup'>;
 export type Theme = 'octave' | 'drone' | 'ear' | 'mystery';
 export type Bonus = 'hold' | 'ears-only' | 'reverse-scale' | 'note-of-day' | 'new-timbre';
 
@@ -16,6 +17,7 @@ export const ROUND_LABEL: Record<RoundType, string> = {
   'ear-hl': 'Higher or lower',
   'ear-intervals': 'Intervals',
   'ear-octave': 'Which octave?',
+  warmup: 'Warm-up',
 };
 
 export const THEME_LABEL: Record<Theme, string> = { octave: 'Octave Day', drone: 'Drone Day', ear: 'Ear Day', mystery: 'Mystery Mix' };
@@ -28,8 +30,8 @@ export const BONUS_LABEL: Record<Bonus, string> = {
   'new-timbre': 'New sound',
 };
 
-export const EAR_TYPES: RoundType[] = ['ear-degrees', 'ear-hl', 'ear-intervals', 'ear-octave'];
-export const SING_TYPES: RoundType[] = ['match', 'octave', 'ladder', 'drone'];
+export const EAR_TYPES: DrillType[] = ['ear-degrees', 'ear-hl', 'ear-intervals', 'ear-octave'];
+export const SING_TYPES: DrillType[] = ['match', 'octave', 'ladder', 'drone'];
 export const isEar = (t: RoundType) => t.startsWith('ear-');
 
 export interface Round {
@@ -45,7 +47,7 @@ export interface SessionPlan {
   silent: boolean;
 }
 
-const BASE: Record<RoundType, number> = {
+const BASE: Record<DrillType, number> = {
   match: 3,
   octave: 2,
   ladder: 2,
@@ -61,7 +63,7 @@ export function themeFor(key: string): Theme {
   return themes[((dayIndex(key) % 4) + 4) % 4];
 }
 
-export function themeWeights(theme: Theme, rand: () => number): Record<RoundType, number> {
+export function themeWeights(theme: Theme, rand: () => number): Record<DrillType, number> {
   const w = { ...BASE };
   if (theme === 'octave') {
     w.octave = 6;
@@ -73,7 +75,7 @@ export function themeWeights(theme: Theme, rand: () => number): Record<RoundType
     for (const t of EAR_TYPES) w[t] *= 3;
     for (const t of SING_TYPES) w[t] *= 0.5;
   } else {
-    for (const t of Object.keys(w) as RoundType[]) w[t] = 0.5 + rand() * 3;
+    for (const t of Object.keys(w) as DrillType[]) w[t] = 0.5 + rand() * 3;
   }
   return w;
 }
@@ -86,6 +88,8 @@ export interface BuildOptions {
   silent?: boolean;
   /** note of the day memorised but not yet sung today */
   noteOfDayPending?: boolean;
+  /** start with a 60 s singing warm-up */
+  warmup?: boolean;
   /** chance of a surprise bonus round */
   bonusChance?: number;
 }
@@ -93,10 +97,10 @@ export interface BuildOptions {
 export function buildSession(o: BuildOptions): SessionPlan {
   const theme = themeFor(o.dateKey);
   const weights = themeWeights(theme, o.rand);
-  const allowed = (Object.keys(weights) as RoundType[]).filter((t) => (o.silent ? isEar(t) : true));
+  const allowed = (Object.keys(weights) as DrillType[]).filter((t) => (o.silent ? isEar(t) : true));
   const total = o.minutes * 60;
   const rounds: Round[] = [];
-  const counts: Partial<Record<RoundType, number>> = {};
+  const counts: Partial<Record<DrillType, number>> = {};
   let sum = 0;
   while (sum < total) {
     const maxEach = Math.max(1, Math.ceil((total / 75) / 2));
@@ -124,6 +128,12 @@ export function buildSession(o: BuildOptions): SessionPlan {
     let sum2 = rounds.reduce((x, r) => x + r.seconds, 0);
     while (sum2 > total + 30 && rounds.length > 2 && !rounds[rounds.length - 1].bonus) sum2 -= rounds.pop()!.seconds;
   }
+  // Optional warm-up: replaces singing time, so drop a round if it overflows.
+  if (o.warmup && !o.silent) {
+    rounds.unshift({ type: 'warmup', seconds: 60 });
+    let sum3 = rounds.reduce((x, r) => x + r.seconds, 0);
+    while (sum3 > total + 30 && rounds.length > 2 && !rounds[rounds.length - 1].bonus) sum3 -= rounds.pop()!.seconds;
+  }
   return { theme, minutes: o.minutes, rounds, silent: !!o.silent };
 }
 
@@ -140,7 +150,7 @@ function pick<T>(items: T[], w: (t: T) => number, rand: () => number): T {
 /** "One more round?" — a round of a type not used last. */
 export function extraRound(plan: SessionPlan, rand: () => number): Round {
   const last = plan.rounds[plan.rounds.length - 1]?.type;
-  const pool = (Object.keys(BASE) as RoundType[]).filter((t) => t !== last && (!plan.silent || isEar(t)));
+  const pool = (Object.keys(BASE) as DrillType[]).filter((t) => t !== last && (!plan.silent || isEar(t)));
   return { type: pool[Math.floor(rand() * pool.length)], seconds: 75 };
 }
 

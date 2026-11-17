@@ -1254,3 +1254,128 @@ select {
 .note-cell.none {
   opacity: 0.45;
 }
+
+/* ---------- M5: settings, onboarding, voice care, accessibility ---------- */
+.home-title .push {
+  flex: 1;
+}
+.home-title h1 {
+  margin: 0;
+}
+.btn.icon {
+  min-width: var(--tap);
+  font-size: 1.3rem;
+  padding: 0 8px;
+}
+.setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.confirm {
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--amber);
+  background: #2a2414;
+}
+.confirm p {
+  margin: 0 0 10px;
+}
+.btn.danger {
+  color: #ffb4a8;
+}
+.btn.danger.grow {
+  background: #4a2323;
+  border-color: #6b2f2f;
+}
+.btn.big {
+  min-height: 56px;
+  font-size: 1.1rem;
+}
+.err {
+  white-space: pre-wrap;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: var(--surface-2);
+  padding: 8px;
+  border-radius: 8px;
+}
+.onboarding {
+  min-height: 100dvh;
+  justify-content: center;
+}
+.card.ob {
+  gap: 16px;
+  padding: 24px 18px;
+}
+.card.ob h1,
+.card.ob h2 {
+  margin: 0;
+}
+.ob-list {
+  margin: 0;
+  padding-left: 1.2em;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.hint {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #1c2a3a;
+  color: #cfe6ff;
+}
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+.dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+}
+.dots span.done {
+  background: var(--muted);
+}
+.dots span.on {
+  background: var(--green);
+  width: 22px;
+  border-radius: 4px;
+}
+.overlay.soft {
+  z-index: 50;
+}
+.overlay.soft .card {
+  max-width: 420px;
+  width: 100%;
+}
+
+/* Accessibility: visible keyboard focus, and no movement for reduced-motion users. */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .auto-bar {
+    display: none;
+  }
+}
+@media (prefers-contrast: more) {
+  :root {
+    --muted: #c3cad6;
+    --line: #4a5468;
+  }
+}

@@ -4,15 +4,23 @@ import { DEFAULT_SETTINGS, loadSettings, saveSettings, type Settings } from '../
 // In-memory settings cache backed by IndexedDB.
 
 let current: Settings = DEFAULT_SETTINGS;
+let loaded = false;
+/** false until IndexedDB has answered (so first-run checks don't flash) */
+export const isSettingsLoaded = () => loaded;
 const listeners = new Set<() => void>();
 
 export const settingsReady: Promise<Settings> = loadSettings()
   .then((s) => {
     current = s;
+    loaded = true;
     listeners.forEach((l) => l());
     return s;
   })
-  .catch(() => current);
+  .catch(() => {
+    loaded = true;
+    listeners.forEach((l) => l());
+    return current;
+  });
 
 export function getSettings(): Settings {
   return current;

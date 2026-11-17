@@ -40,11 +40,15 @@ export function Home() {
       <header className="home-head">
         <div className="home-title">
           <h1>Pitch Trainer</h1>
+          <span className="push" />
           {streak.current > 0 && (
             <button className="streak-pill big" onClick={() => go('/progress')} aria-label={`${streak.current} ${streak.mode === 'daily' ? 'day' : 'week'} streak`}>
               🔥 {streak.current}
             </button>
           )}
+          <button className="btn ghost icon" onClick={() => go('/settings')} aria-label="Settings">
+            ⚙︎
+          </button>
         </div>
         {s.range && (
           <p className="muted small">
@@ -149,9 +153,9 @@ export function Home() {
           <strong>Voice range</strong>
           <span className="muted small">{needsRange ? 'Not measured yet' : 'Re-test monthly'}</span>
         </button>
-        <button className="mode" onClick={() => go('/diagnostics')}>
-          <strong>Diagnostics</strong>
-          <span className="muted small">Sound lab and mic readout</span>
+        <button className="mode" onClick={() => go('/settings')}>
+          <strong>Settings</strong>
+          <span className="muted small">Headphones, voice care, backup</span>
         </button>
       </nav>
       <footer className="muted small center">

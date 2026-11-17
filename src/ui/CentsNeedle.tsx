@@ -58,9 +58,9 @@ export function CentsNeedle({ state, toleranceCents, holdMs, hidden }: Props) {
       </div>
       <div className={`needle-word ${state?.justLocked || state?.locked ? 'pop' : ''}`} aria-live="polite">
         {word}
-        {c != null && !state?.locked && <span className="needle-cents">{fmtCents(octaveOff ? state!.folded!.pcCents : c)}</span>}
+        {c != null && !state?.locked && <span className="needle-cents" aria-hidden="true">{fmtCents(octaveOff ? state!.folded!.pcCents : c)}</span>}
       </div>
-      <div className="hold-bar" aria-label="Hold progress">
+      <div className="hold-bar" role="progressbar" aria-label="Hold progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
         <div style={{ width: `${progress * 100}%` }} />
       </div>
     </div>

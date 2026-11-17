@@ -25,6 +25,7 @@ export function AudioGate({ children }: { children: ReactNode }) {
           {busy ? 'Starting…' : 'Tap to start'}
         </button>
         <p className="muted small">Turns on sound. Nothing is recorded or uploaded.</p>
+        <p className="muted small">No sound? Check the silent switch and the volume.</p>
       </div>
     );
   }

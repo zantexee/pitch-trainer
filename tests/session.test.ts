@@ -88,3 +88,17 @@ describe('bonus rounds', () => {
       }
   });
 });
+
+describe('warm-up', () => {
+  it('opens singing sessions with a 60 s warm-up, never silent ones', () => {
+    const r = rng(11);
+    for (let i = 0; i < 50; i++) {
+      const p = buildSession({ minutes: 5, dateKey: '2026-11-17', rand: r, warmup: true });
+      expect(p.rounds[0]).toMatchObject({ type: 'warmup', seconds: 60 });
+      expect(p.rounds.slice(1).some((x) => x.type === 'warmup')).toBe(false);
+      expect(p.rounds.reduce((a, b) => a + b.seconds, 0)).toBeLessThanOrEqual(5 * 60 + 90);
+      const q = buildSession({ minutes: 5, dateKey: '2026-11-17', rand: r, warmup: true, silent: true });
+      expect(q.rounds.some((x) => x.type === 'warmup')).toBe(false);
+    }
+  });
+});
