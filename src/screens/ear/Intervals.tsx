@@ -4,6 +4,8 @@ import { saveAttempt } from '../../db/db';
 import { initialState, leverValue, recordOutcome } from '../../engine/adaptive';
 import { INTERVAL_LEVELS, INTERVAL_NAMES, type IntervalDir } from '../../engine/ear';
 import type { Timbre } from '../../audio/synth';
+import { useAutoStart } from '../../lib/embed';
+import { bump, weakness, weightedPick } from '../../engine/weights';
 import { Answers, EAR_ADAPTIVE, EarShell, FeedbackLine, LEVEL_LEVER, playSeq, RoundPicker, RoundStatus, RoundSummaryCard, useLater, useRound, type Feedback } from './common';
 import type { Dimension } from '../../engine/roundStats';
 
@@ -34,7 +36,9 @@ export function Intervals() {
   const [tally, setTally] = useState({ n: 0, ok: 0 });
   const [msg, setMsg] = useState<string | null>(null);
   const later = useLater();
-  const round = useRound(DIMS);
+  const round = useRound(DIMS, 'ear-intervals');
+
+  useAutoStart(true, () => next());
 
   function play(x: Q) {
     const top = x.base + x.semis;
@@ -45,7 +49,7 @@ export function Intervals() {
   function next() {
     const st = getSettings();
     const level = INTERVAL_LEVELS[leverValue(LEVERS, st.earInterval ?? initialState(LEVERS), 'level') as number];
-    const semis = level.intervals[Math.floor(Math.random() * level.intervals.length)];
+    const semis = weightedPick(level.intervals, (x) => weakness(st.intervalStats[INTERVAL_NAMES[x]]), Math.random);
     const dir = level.dirs[Math.floor(Math.random() * level.dirs.length)];
     const base = 50 + Math.floor(Math.random() * Math.max(1, 79 - 50 - semis));
     const x: Q = { base, semis, dir, timbre: TIMBRES[Math.floor(Math.random() * TIMBRES.length)] };
@@ -63,7 +67,7 @@ export function Intervals() {
     if (!correct) later(() => play(q), 250); // hear it again knowing the answer
     const st = getSettings();
     const { state, change } = recordOutcome(st.earInterval ?? initialState(LEVERS), LEVERS, correct, EAR_ADAPTIVE);
-    updateSettings({ earInterval: state });
+    updateSettings({ earInterval: state, intervalStats: bump(st.intervalStats, INTERVAL_NAMES[q.semis], correct) });
     if (change) {
       const a = INTERVAL_LEVELS[change.from];
       const b = INTERVAL_LEVELS[change.to];
@@ -80,7 +84,7 @@ export function Intervals() {
   return (
     <EarShell title="Intervals" score={tally}>
       {round.summary ? (
-        <RoundSummaryCard summary={round.summary} onAgain={() => (round.reset(), next())}
+        <RoundSummaryCard summary={round.summary} newBest={round.newBest} onAgain={() => (round.reset(), next())}
           confusionLabel={(e, a) => `${e} heard as ${a}`} />
       ) : (
       <>

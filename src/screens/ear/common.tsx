@@ -5,6 +5,8 @@ import { getSettings, updateSettings, useSettings } from '../../lib/settings';
 import { summarizeRound, currentStreak, type Dimension, type RoundSummary, type TrialRecord } from '../../engine/roundStats';
 import { go } from '../../lib/router';
 import type { LeverDef } from '../../engine/adaptive';
+import { useEmbed } from '../../lib/embed';
+import { recordBest } from '../../lib/bests';
 
 // Shared bits for the listening-only drills. No mic here: audio session stays "playback".
 
@@ -25,6 +27,8 @@ export function playSeq(seq: (number | number[])[], o: { dur?: number; gap?: num
 }
 
 export function EarShell({ title, score, children }: { title: string; score?: { n: number; ok: number }; children: ReactNode }) {
+  const embed = useEmbed();
+  if (embed) return <main className="screen">{children}</main>;
   return (
     <main className="screen">
       <header className="bar">
@@ -94,20 +98,32 @@ export function useLater() {
 
 export const ROUND_LENGTHS = [10, 20, 50, 0];
 
-export function useRound(dims: Dimension[]) {
+export function useRound(dims: Dimension[], id: string) {
   const s = useSettings();
+  const embed = useEmbed();
   const [trials, setTrials] = useState<TrialRecord[]>([]);
   const [summary, setSummary] = useState<RoundSummary | null>(null);
-  const len = s.earRoundLength;
+  const [newBest, setNewBest] = useState<number | null>(null);
+  // In a Daily Mix the runner's clock ends the round.
+  const len = embed ? 0 : s.earRoundLength;
   return {
     len,
     trials,
     summary,
+    newBest,
+    embedded: !!embed,
     streak: currentStreak(trials),
     /** Record a trial. Returns true if this trial ends the round. */
     record(t: TrialRecord, delayMs = 900): boolean {
       const next = [...trials, t];
       setTrials(next);
+      const run = currentStreak(next);
+      let best: string | null = null;
+      if (t.correct && run >= 3 && recordBest(`run:${id}`, run)) {
+        setNewBest(run);
+        best = `New best: ${run} in a row`;
+      }
+      embed?.report({ ok: t.correct, best });
       if (len && next.length >= len) {
         setTimeout(() => setSummary(summarizeRound(next, dims)), delayMs);
         return true;
@@ -120,12 +136,14 @@ export function useRound(dims: Dimension[]) {
     reset() {
       setTrials([]);
       setSummary(null);
+      setNewBest(null);
     },
   };
 }
 
 export function RoundPicker() {
   const s = useSettings();
+  if (useEmbed()) return null;
   return (
     <div className="chips center-chips" role="radiogroup" aria-label="Round length">
       {ROUND_LENGTHS.map((n) => (
@@ -141,8 +159,8 @@ export function RoundStatus({ round }: { round: ReturnType<typeof useRound> }) {
   return (
     <div className="round-status">
       <span className="muted">{round.len ? `${round.trials.length} / ${round.len}` : `${round.trials.length} so far`}</span>
-      {round.streak >= 3 && <span className="streak-pill">{round.streak} in a row</span>}
-      {!round.len && round.trials.length > 0 && (
+      {round.streak >= 3 && <span className="streak-pill">{round.newBest === round.streak ? `★ ${round.streak} in a row, new best` : `${round.streak} in a row`}</span>}
+      {!round.len && !round.embedded && round.trials.length > 0 && (
         <button className="btn ghost small" onClick={round.end}>
           End round
         </button>
@@ -156,7 +174,19 @@ export function RoundStatus({ round }: { round: ReturnType<typeof useRound> }) {
   );
 }
 
-export function RoundSummaryCard({ summary, extra, onAgain, confusionLabel }: { summary: RoundSummary; extra?: ReactNode; onAgain: () => void; confusionLabel?: (expected: string, answer: string) => string }) {
+export function RoundSummaryCard({
+  summary,
+  extra,
+  onAgain,
+  confusionLabel,
+  newBest,
+}: {
+  summary: RoundSummary;
+  extra?: ReactNode;
+  onAgain: () => void;
+  confusionLabel?: (expected: string, answer: string) => string;
+  newBest?: number | null;
+}) {
   const verdict = summary.pct >= 90 ? 'Excellent' : summary.pct >= 75 ? 'Solid' : summary.pct >= 60 ? 'Getting there' : 'Tough round';
   return (
     <section className="card summary">
@@ -169,6 +199,7 @@ export function RoundSummaryCard({ summary, extra, onAgain, confusionLabel }: { 
           </div>
         </div>
       </div>
+      {newBest != null && <div className="pb">★ New best run: {newBest} in a row</div>}
       {extra}
       <div>
         <h4>Where the problems were</h4>

@@ -4,6 +4,7 @@ import type { Timbre } from '../audio/synth';
 import type { DroneMode } from '../audio/drone';
 import type { VoiceRange } from '../lib/range';
 import type { AdaptiveState } from '../engine/adaptive';
+import type { SavedSession } from '../engine/session';
 
 // All local data lives in IndexedDB. Nothing is uploaded anywhere.
 
@@ -41,6 +42,18 @@ export interface Settings {
   earInterval: AdaptiveState | null;
   earOctave: AdaptiveState | null;
   noteOfDay: { date: string; midi: number; memorisedAt: number | null; result: { cents: number | null; octave: number; ts: number } | null } | null;
+  /** per scale degree / interval success, for weak-spot targeting */
+  degreeStats: Record<string, { n: number; ok: number }>;
+  intervalStats: Record<string, { n: number; ok: number }>;
+  /** personal bests by key */
+  bests: Record<string, number>;
+  /** Daily Mix */
+  sessionMinutes: number;
+  silentMode: boolean;
+  streakMode: 'daily' | 'weekly';
+  weeklyGoal: number;
+  /** an unfinished Daily Mix, to continue later today */
+  activeSession: SavedSession | null;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -69,6 +82,14 @@ export const DEFAULT_SETTINGS: Settings = {
   earInterval: null,
   earOctave: null,
   noteOfDay: null,
+  degreeStats: {},
+  intervalStats: {},
+  bests: {},
+  sessionMinutes: 5,
+  silentMode: false,
+  streakMode: 'daily',
+  weeklyGoal: 4,
+  activeSession: null,
 };
 
 interface KV {

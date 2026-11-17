@@ -94,11 +94,18 @@ export function fullSpan(range: VoiceRange): Span {
 }
 
 /** Pick a note in range, at most `maxStep` semitones from `prev` (if given), never repeating prev. */
-export function pickNote(pool: number[], rand: () => number, prev?: number | null, maxStep = 12): number {
+export function pickNote(pool: number[], rand: () => number, prev?: number | null, maxStep = 12, weight?: (m: number) => number): number {
   let candidates = pool;
   if (prev != null) {
     const near = pool.filter((m) => m !== prev && Math.abs(m - prev) <= maxStep);
     if (near.length) candidates = near;
   }
-  return candidates[Math.floor(rand() * candidates.length)];
+  if (!weight) return candidates[Math.floor(rand() * candidates.length)];
+  const w = candidates.map(weight);
+  let x = rand() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < candidates.length; i++) {
+    x -= w[i];
+    if (x <= 0) return candidates[i];
+  }
+  return candidates[candidates.length - 1];
 }

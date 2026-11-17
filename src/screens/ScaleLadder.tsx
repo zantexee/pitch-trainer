@@ -16,6 +16,8 @@ import { useSingingMic } from '../modules/useSingingMic';
 import { MicGate } from '../ui/MicGate';
 import { PitchTrace } from '../ui/PitchTrace';
 import { CentsNeedle } from '../ui/CentsNeedle';
+import { useAutoStart, useEmbed } from '../lib/embed';
+import { nextRun } from '../lib/bests';
 
 // Scale Ladder: a cadence or tonic drone sets the key, then you sing the
 // steps. Relaxed mode: each step must lock before the next appears.
@@ -43,6 +45,9 @@ export function ScaleLadder() {
   const [beat, setBeat] = useState(0);
   const [msg, setMsg] = useState<string | null>(null);
   const abort = useRef<AbortController | null>(null);
+  const embed = useEmbed();
+  const stepRun = useRef(0);
+  const runBest = useRef<string | null>(null);
 
   const adaptive = s.ladder ?? initialState(SL_LEVERS);
   const stage = leverValue(SL_LEVERS, adaptive, 'stage') as number;
@@ -98,8 +103,10 @@ export function ScaleLadder() {
     abort.current = ac;
     const st = getSettings();
     const ad = st.ladder ?? initialState(SL_LEVERS);
-    const built = buildLadder(leverValue(SL_LEVERS, ad, 'stage') as number, st.range ?? DEFAULT_RANGE, st.stretch, Math.random);
+    let built = buildLadder(leverValue(SL_LEVERS, ad, 'stage') as number, st.range ?? DEFAULT_RANGE, st.stretch, Math.random);
     if (!built) return;
+    if (embed?.bonus === 'reverse-scale') built = { ...built, plan: { ...built.plan, title: `${built.plan.title} (reversed)`, steps: [...built.plan.steps].reverse() } };
+    runBest.current = null;
     setLadder(built);
     setIdx(0);
     setResults([]);
@@ -119,6 +126,7 @@ export function ScaleLadder() {
         if (ac.signal.aborted) return;
         out.push(r);
         setResults([...out]);
+        reportStep(r.ok);
         void saveAttempt({
           ts: Date.now(),
           module: 'scale-ladder',
@@ -135,11 +143,19 @@ export function ScaleLadder() {
       const rate = out.filter((x) => x.ok).length / out.length;
       const { state, change } = recordOutcome(getSettings().ladder ?? initialState(SL_LEVERS), SL_LEVERS, rate >= 0.8, { window: 6, minAttempts: 3, raiseAbove: 0.85, lowerBelow: 0.5 });
       updateSettings({ ladder: state });
-      if (change) setMsg(change.dir > 0 ? `Next up: ${LADDER_STAGES[change.to]}` : `Back to: ${LADDER_STAGES[change.to]}`);
+      if (runBest.current) setMsg(runBest.current);
+      else if (change) setMsg(change.dir > 0 ? `Next up: ${LADDER_STAGES[change.to]}` : `Back to: ${LADDER_STAGES[change.to]}`);
       setPhase('done');
     } catch {
       drone.stop();
     }
+  }
+
+  function reportStep(ok: boolean) {
+    const r = nextRun(stepRun.current, ok, 'run:ladder-steps');
+    stepRun.current = r.run;
+    if (r.best) runBest.current = `New best: ${r.run} steps in a row`;
+    embed?.report({ ok, best: r.best ? runBest.current : null });
   }
 
   async function relaxedStep(targetHz: number, signal: AbortSignal): Promise<StepResult> {
@@ -200,6 +216,7 @@ export function ScaleLadder() {
           if (ac.signal.aborted) return;
           out.push(r);
           setResults([...out]);
+          reportStep(r.ok);
         }
         drone.stop();
         setPhase('done');
@@ -215,14 +232,22 @@ export function ScaleLadder() {
   const cur = ladder?.plan.steps[idx];
   const okCount = results.filter((r) => r.ok).length;
 
+  useAutoStart(mic.status === 'ready', () => void run());
+  useEffect(() => {
+    if (embed && status === 'running' && phase === 'paused') void run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
   return (
     <main className="screen">
-      <header className="bar">
-        <button className="btn ghost" onClick={() => go('/')}>
-          ‹ Home
-        </button>
-        <h2>Scale Ladder</h2>
-      </header>
+      {!embed && (
+        <header className="bar">
+          <button className="btn ghost" onClick={() => go('/')}>
+            ‹ Home
+          </button>
+          <h2>Scale Ladder</h2>
+        </header>
+      )}
       <MicGate status={mic.status} error={mic.error}>
         <div className="levels muted small">
           Stage {stage + 1}: {LADDER_STAGES[stage]}
@@ -235,7 +260,7 @@ export function ScaleLadder() {
               </button>
             ))}
           </div>
-          {(phase === 'ready' || phase === 'paused') && (
+          {(phase === 'ready' || phase === 'paused') && !embed && (
             <>
               <div className="chips">
                 <button className={`chip ${!s.ladderTimed ? 'on' : ''}`} onClick={() => updateSettings({ ladderTimed: false })}>
@@ -312,9 +337,11 @@ export function ScaleLadder() {
                       Skip step
                     </button>
                   )}
-                  <button className="btn grow" onClick={() => (abort.current?.abort(), drone.stop(), setPhase('paused'))}>
-                    ❚❚ Pause
-                  </button>
+                  {!embed && (
+                    <button className="btn grow" onClick={() => (abort.current?.abort(), drone.stop(), setPhase('paused'))}>
+                      ❚❚ Pause
+                    </button>
+                  )}
                 </div>
               )}
               {phase === 'done' && (

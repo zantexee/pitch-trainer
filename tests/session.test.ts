@@ -76,3 +76,15 @@ describe('weak-spot weights', () => {
     expect(b / 4000).toBeGreaterThan(0.7);
   });
 });
+
+describe('bonus rounds', () => {
+  it('a bonus does not stretch the session much past its length', () => {
+    const r = rng(9);
+    for (const minutes of [2, 5, 10])
+      for (let i = 0; i < 100; i++) {
+        const p = buildSession({ minutes, dateKey: '2026-11-17', rand: r, bonusChance: 1 });
+        const total = p.rounds.reduce((a, b) => a + b.seconds, 0);
+        expect(total).toBeLessThanOrEqual(minutes * 60 + 90);
+      }
+  });
+});

@@ -5,6 +5,7 @@ import { saveAttempt } from '../../db/db';
 import { initialState, leverValue, recordOutcome } from '../../engine/adaptive';
 import { OCTAVE_LEVELS, octaveQuestion, type OctaveQuestion } from '../../engine/ear';
 import { LOW_NOTE_MIDI, type Timbre } from '../../audio/synth';
+import { useAutoStart } from '../../lib/embed';
 import { Answers, EAR_ADAPTIVE, EarShell, FeedbackLine, LEVEL_LEVER, playSeq, RoundPicker, RoundStatus, RoundSummaryCard, useLater, useRound, type Feedback } from './common';
 import type { Dimension } from '../../engine/roundStats';
 
@@ -27,12 +28,14 @@ export function WhichOctave() {
   const [tally, setTally] = useState({ n: 0, ok: 0 });
   const [tip, setTip] = useState<string | null>(null);
   const later = useLater();
-  const round = useRound(DIMS);
+  const round = useRound(DIMS, 'ear-octave');
 
   function play(x: OctaveQuestion & { timbre: Timbre }) {
     if (x.kind === 'same') playSeq([x.a, x.b], { timbre: x.timbre, dur: 0.8, gap: 0.2 });
     else playSeq([x.note], { timbre: x.timbre, dur: 1.2 });
   }
+
+  useAutoStart(true, () => next());
 
   function next() {
     const st = getSettings();
@@ -73,7 +76,7 @@ export function WhichOctave() {
   return (
     <EarShell title="Which octave?" score={tally}>
       {round.summary ? (
-        <RoundSummaryCard summary={round.summary} onAgain={() => (round.reset(), next())}
+        <RoundSummaryCard summary={round.summary} newBest={round.newBest} onAgain={() => (round.reset(), next())}
           confusionLabel={(e, a) => `${e} heard as ${a}`} />
       ) : (
       <>

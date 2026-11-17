@@ -14,6 +14,10 @@ import type { AttemptScore, PitchSample } from '../pitch/scoring';
 import { listen, sleep } from '../modules/listen';
 import { useSingingMic } from '../modules/useSingingMic';
 import { MicGate } from '../ui/MicGate';
+import { useAutoStart, useEmbed } from '../lib/embed';
+import { nextRun } from '../lib/bests';
+import { weakness } from '../engine/weights';
+import { TIMBRES } from '../audio/synth';
 import { PitchTrace } from '../ui/PitchTrace';
 import { CentsNeedle } from '../ui/CentsNeedle';
 import { ResultCard } from '../ui/ResultCard';
@@ -40,6 +44,7 @@ interface Trial {
   gap: number;
   earsOnly: boolean;
   doubling: number | null;
+  newSound?: boolean;
 }
 
 interface Outcome {
@@ -48,6 +53,8 @@ interface Outcome {
   recordingUrl: string | null;
   levelMsg: string | null;
 }
+
+const noteStat = (hist: boolean[] | undefined) => (hist ? { n: hist.length, ok: hist.filter(Boolean).length } : undefined);
 
 export function PitchMatch() {
   const s = useSettings();
@@ -62,6 +69,8 @@ export function PitchMatch() {
   const [tally, setTally] = useState({ n: 0, ok: 0 });
   const abort = useRef<AbortController | null>(null);
   const prevNote = useRef<number | null>(null);
+  const run = useRef(0);
+  const embed = useEmbed();
 
   const adaptive = s.pitchMatch ?? initialState(PM_LEVERS);
   const tol = leverValue(PM_LEVERS, adaptive, 'tol') as number;
@@ -89,16 +98,27 @@ export function PitchMatch() {
     const ad = st.pitchMatch ?? initialState(PM_LEVERS);
     const spread = leverValue(PM_LEVERS, ad, 'spread') as number;
     const timbres = leverValue(PM_LEVERS, ad, 'timbres') as Timbre[];
-    const midi = pickNote(pool, Math.random, prevNote.current, spread);
+    // Weak-spot targeting: notes you've missed come up more often.
+    const midi = pickNote(pool, Math.random, prevNote.current, spread, (m) => weakness(noteStat(st.noteHistory[midiToName(m)])));
     prevNote.current = midi;
     const name = midiToName(midi);
     const hist = st.noteHistory[name] ?? [];
     const reliable = hist.length >= 3 && hist.slice(-3).every(Boolean);
-    const earsOnly = reliable && Math.random() < 0.35;
+    const earsOnly = embed?.bonus === 'ears-only' || (reliable && Math.random() < 0.35);
+    let timbre = timbres[Math.floor(Math.random() * timbres.length)];
+    let newSound = false;
+    if (embed?.bonus === 'new-timbre') {
+      const fresh = TIMBRES.map((x) => x.id as Timbre).filter((x) => !timbres.includes(x));
+      if (fresh.length) {
+        timbre = fresh[Math.floor(Math.random() * fresh.length)];
+        newSound = true;
+      }
+    }
     const doubling = st.headphones && hist.length < DOUBLING_LEVELS.length ? DOUBLING_LEVELS[hist.length] : null;
     return {
       midi,
-      timbre: timbres[Math.floor(Math.random() * timbres.length)],
+      timbre,
+      newSound,
       tol: leverValue(PM_LEVERS, ad, 'tol') as number,
       hold: leverValue(PM_LEVERS, ad, 'hold') as number,
       gap: leverValue(PM_LEVERS, ad, 'gap') as number,
@@ -161,12 +181,15 @@ export function PitchMatch() {
         difficulty: { tol: t.tol, hold: t.hold, gap: t.gap, timbre: t.timbre, earsOnly: t.earsOnly ? 1 : 0 },
       });
       setTally((x) => ({ n: x.n + 1, ok: x.ok + (success ? 1 : 0) }));
+      const r = nextRun(run.current, success, 'run:pitch-match');
+      run.current = r.run;
+      embed?.report({ ok: success, best: r.best });
       const lever = change ? PM_LEVERS.find((l) => l.id === change.lever)!.label : null;
       setOutcome({
         score: res.score,
         samples: res.attempt.samples,
         recordingUrl: res.recordingUrl,
-        levelMsg: change && lever ? (change.dir > 0 ? `Getting harder: ${lever.toLowerCase()}` : `Easing off: ${lever.toLowerCase()}`) : null,
+        levelMsg: r.best ?? (change && lever ? (change.dir > 0 ? `Getting harder: ${lever.toLowerCase()}` : `Easing off: ${lever.toLowerCase()}`) : null),
       });
       setPhase('result');
     } catch {
@@ -179,18 +202,26 @@ export function PitchMatch() {
     void runTrial();
   };
 
+  useAutoStart(mic.status === 'ready', () => void runTrial());
+  useEffect(() => {
+    if (embed && status === 'running' && phase === 'paused') void runTrial();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
   const instruction =
     phase === 'hear' ? 'Listen…' : phase === 'gap' ? 'Remember it…' : phase === 'sing' ? `Sing it and hold ${(trial?.hold ?? hold) / 1000} s` : 'Hear a note, then sing it back.';
 
   return (
     <main className="screen">
-      <header className="bar">
-        <button className="btn ghost" onClick={() => go('/')}>
-          ‹ Home
-        </button>
-        <h2>Pitch Match</h2>
-        <span className="muted small push">{tally.n > 0 && `${tally.ok}/${tally.n}`}</span>
-      </header>
+      {!embed && (
+        <header className="bar">
+          <button className="btn ghost" onClick={() => go('/')}>
+            ‹ Home
+          </button>
+          <h2>Pitch Match</h2>
+          <span className="muted small push">{tally.n > 0 && `${tally.ok}/${tally.n}`}</span>
+        </header>
+      )}
       <MicGate status={mic.status} error={mic.error}>
         <div className="levels muted small">
           ±{tol}¢ · hold {hold / 1000}s · gap {gap / 1000}s{!s.range && ' · default range (run the range finder)'}
@@ -204,7 +235,7 @@ export function PitchMatch() {
               Start
             </button>
           )}
-          {phase === 'paused' && (
+          {phase === 'paused' && !embed && (
             <button className="btn-huge" onClick={() => void runTrial()}>
               Resume
             </button>
@@ -214,6 +245,7 @@ export function PitchMatch() {
               <div className="target-note">
                 {phase === 'sing' && trial.earsOnly ? '?' : midiToName(trial.midi)}
                 {trial.earsOnly && <span className="badge">ears only</span>}
+                {trial.newSound && <span className="badge">new sound</span>}
               </div>
               <CentsNeedle state={phase === 'sing' ? live : null} toleranceCents={trial.tol} holdMs={trial.hold} hidden={trial.earsOnly} />
               {trial.earsOnly ? (
@@ -222,9 +254,11 @@ export function PitchMatch() {
                 <PitchTrace a4={s.a4} targetHz={noteToFreq(trial.midi, s.a4)} toleranceCents={trial.tol} />
               )}
               <div className="row">
-                <button className="btn" onClick={() => (abort.current?.abort(), setPhase('paused'))}>
-                  ❚❚ Pause
-                </button>
+                {!embed && (
+                  <button className="btn" onClick={() => (abort.current?.abort(), setPhase('paused'))}>
+                    ❚❚ Pause
+                  </button>
+                )}
                 <button className="btn grow" onClick={skip}>
                   Skip ›
                 </button>

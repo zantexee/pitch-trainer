@@ -211,7 +211,7 @@ function Header() {
   );
 }
 
-function RangeHistory({ history }: { history: RangeRecord[] }) {
+export function RangeHistory({ history }: { history: RangeRecord[] }) {
   const recs = history.slice(-12);
   const W = 300;
   const H = 160;

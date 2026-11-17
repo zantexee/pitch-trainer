@@ -8,6 +8,7 @@ import { listen } from '../../modules/listen';
 import { useSingingMic } from '../../modules/useSingingMic';
 import { MicGate } from '../../ui/MicGate';
 import { EarShell, playSeq } from './common';
+import { useEmbed } from '../../lib/embed';
 
 // Pitch-memory side quest: hear one note in the morning, sing it from memory
 // later. Experimental: some adults partly learn absolute pitch, most improve
@@ -26,7 +27,9 @@ export function NoteOfDay() {
   const range = s.range ?? DEFAULT_RANGE;
   const midi = noteOfTheDay(today, range.chest.lo + 2, range.chest.hi - 2);
   const nd = s.noteOfDay?.date === today ? s.noteOfDay : null;
-  const [singing, setSinging] = useState(false);
+  const embed = useEmbed();
+  // In a Daily Mix bonus round, go straight to the memory check.
+  const [singing, setSinging] = useState(!!embed && !!nd?.memorisedAt && !nd.result);
   const [history, setHistory] = useState<Rec[]>([]);
 
   useEffect(() => {
@@ -113,6 +116,7 @@ function describeMemory(c: number | null): string {
 
 function SingCheck({ midi, onDone }: { midi: number; onDone: (h: Rec[]) => void }) {
   const mic = useSingingMic();
+  const report = useEmbed()?.report;
   const [state, setState] = useState<'wait' | 'listening'>('wait');
   useEffect(() => {
     if (mic.status !== 'ready' || state !== 'wait') return;
@@ -124,9 +128,11 @@ function SingCheck({ midi, onDone }: { midi: number; onDone: (h: Rec[]) => void 
       const result = { cents: sc.meanCents, octave: sc.octave, ts: Date.now() };
       const nd = getSettings().noteOfDay;
       if (nd) updateSettings({ noteOfDay: { ...nd, result } });
+      report?.({ ok: sc.pcAccuracy != null && Math.abs(sc.meanCents ?? 9999) <= 100 });
       void saveAttempt({ ts: Date.now(), module: 'note-of-day', target: midiToName(midi), result: sc.verdict, centsError: sc.meanCents, octaveError: sc.octave, settleMs: sc.settleMs, stability: sc.stability, difficulty: {} });
       onDone(await appendList<Rec>('notdHistory', { date: localDateKey(), note: midiToName(midi), cents: sc.meanCents, octave: sc.octave }));
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mic.status, state, midi, onDone]);
   return (
     <MicGate status={mic.status} error={mic.error}>

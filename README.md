@@ -2,7 +2,7 @@
 
 A pitch-training Progressive Web App for iPhone (and desktop): singing pitch with live mic feedback, plus silent ear-training drills. No backend, no accounts, no analytics. Audio is never uploaded or kept.
 
-**Status: Milestone 3.** On top of the M0 audio foundation it has the voice range finder, Drone mode (free singing, holds, scale degrees, slides), Pitch Match with adaptive difficulty, Octave Jump, Scale Ladder, five listening-only ear drills, and the shared feedback UI (live trace, cents needle, result card). The daily session, streaks and progress screens come in M4 (see [Roadmap](#roadmap)).
+**Status: Milestone 4.** One tap on **Start** runs a Daily Mix of short rounds across every exercise, with forgiving streaks, weak-spot targeting, personal bests and a Progress screen. Underneath: the voice range finder, Drone mode, Pitch Match, Octave Jump, Scale Ladder, five listening-only ear drills (now with 10/20/50/∞ rounds and end-of-round summaries) and the shared feedback UI. Polish, onboarding and settings come in M5 (see [Roadmap](#roadmap)).
 
 Live app: **https://zantexee.github.io/pitch-trainer/** (once GitHub Pages is enabled; see [Deploy](#deploy)).
 
@@ -168,6 +168,18 @@ Silence tests: digital silence, quiet room noise after calibration, and loud whi
 
 ---
 
+### Daily Mix, streaks and progress (M4)
+
+- **Start** builds a session (`engine/session.ts`) of 60–90 s rounds for 2, 5 or 10 minutes, never the same exercise twice in a row. Each day has a theme that rotates: *Octave Day*, *Drone Day*, *Ear Day*, *Mystery Mix* (random weights). **🤫 Silent** makes it ears-only.
+- The runner (`screens/Session.tsx`) shows a short intro card per round, a countdown and a segmented progress bar, with Pause, Next round and ✕ End. When time runs out the current trial finishes first ("last one"), so you're never cut off mid-note. The mic stays open for the whole session (reference-counted in `useSingingMic`). Each mode runs "embedded" (`lib/embed.ts`): no header or setup, it starts by itself and reports each trial.
+- About 1 session in 4 has a **🎁 bonus round** in the middle: longest steady hold, an ears-only Pitch Match round, a reversed scale, a new timbre, or (if you memorised it over an hour ago) the Note of the day check.
+- Ending early saves the session; Home offers **Continue today's session**. The end summary shows %, per-round scores, personal bests, the streak, strongest vs. weakest exercise, and **One more round?**
+- **Practice time** is counted while a training screen is open, visible and its audio is running (`lib/practice.ts`, per local date key). A day counts at 2 minutes. **Streaks** (`engine/streaks.ts`) earn a freeze every 5 practice days (2 max), used automatically on a missed day. A broken streak can be **repaired** with 2 sessions (visits of 2+ min) within 48 h ("Life happens. Repair your 12-day streak…"). Optional weekly-goal mode (3/4/5 days a week). Today never breaks a streak.
+- **Weak-spot targeting** (`engine/weights.ts`): notes in Pitch Match, scale degrees and intervals are picked with weights from 1 (always right) to 3 (always wrong). Octave Jump already weights register pairs.
+- **Personal bests** (`lib/bests.ts`): longest steady hold, finest Higher-or-lower threshold, and best runs in a row per exercise. The first value is stored silently; only beating it gets a ★ message.
+- **Ear-drill rounds**: pick 10, 20, 50 or ∞ trials. The summary shows %, best run, where the problems were (by degree, interval, direction, size, register…), the most common mix-ups ("heard 3 as 5") and a breakdown bar chart.
+- **Progress** screen: streak card with mode switch, a 16-week calendar heatmap (freezes and repairs marked), this week vs. last, Pitch Match accuracy per note, scale-degree, interval and register-pair grids, the Higher-or-lower threshold chart, weekly median time-to-lock, personal bests and range over time. Home shows a compact weekly card ("Most improved: …").
+
 ## Manual device checklist
 
 Run these on the phone and note the results in the table. The **Diagnostics** screen shows everything you need: Hz, note, cents, clarity, RMS, sample rate, audioSession type, input device, and the mic constraints asked for vs. applied.
@@ -195,8 +207,12 @@ Run these on the phone and note the results in the table. The **Diagnostics** sc
 | 19 | Octave Jump: chest ↔ falsetto pairs score the octave correctly (no false "octave low/high") | | | |
 | 21 | Ear drills with the mic indicator OFF (no orange dot) and the silent switch on/off | | | |
 | 20 | Scale Ladder: cadence is audible on the speaker; relaxed steps advance on lock; timed mode keeps up | | | |
+| 22 | Start (Daily Mix): first round begins without an extra "Tap to start"; rounds flow; mic dot stays on between rounds and goes off at the end | | | |
+| 23 | Lock the phone mid-session: it pauses, the countdown stops, Resume continues | | | |
+| 24 | ✕ End mid-session, then Home shows "Continue today's session" | | | |
+| 25 | Streak flame appears after 2 min of practice; the calendar shows today | | | |
 
-Already checked in desktop Chromium (headless, fake mic fed a C3 tone): the audio gate, all timbres and the drone run without errors, and the mic reads C3 at 130.81 Hz with clarity 1.00. For M3, all five ear drills run through several trials (answers, feedback, resolutions, levels), and Note of the day goes from memorise to sing to result, with no console errors. For M2, Octave Jump (a C3 voice against a C4 target reads "Note ✓ · Octave ✗ (one octave low)", then the target plays) and Scale Ladder (cadence, then timed steps, then summary) run with no console errors. For M1, the range finder, Pitch Match (a C3 voice against a C4 target correctly reads "Right note, one octave low"), Drone free mode and the Hold / Slide challenges all run end to end with no console errors.
+Already checked in desktop Chromium (headless, fake mic fed a C3 tone): for M4, a 2-minute Daily Mix (Octave Jump → 🎁 longest hold → Intervals) and a silent ears-only session run start to summary, then Progress renders the streak, calendar, note heatmap, grids and settle trend, with no console errors. Also the audio gate, all timbres and the drone run without errors, and the mic reads C3 at 130.81 Hz with clarity 1.00. For M3, all five ear drills run through several trials (answers, feedback, resolutions, levels), and Note of the day goes from memorise to sing to result, with no console errors. For M2, Octave Jump (a C3 voice against a C4 target reads "Note ✓ · Octave ✗ (one octave low)", then the target plays) and Scale Ladder (cadence, then timed steps, then summary) run with no console errors. For M1, the range finder, Pitch Match (a C3 voice against a C4 target correctly reads "Right note, one octave low"), Drone free mode and the Hold / Slide challenges all run end to end with no console errors.
 
 ## Roadmap
 
@@ -204,7 +220,7 @@ Already checked in desktop Chromium (headless, fake mic fed a C3 tone): the audi
 - **M1 (done):** voice range finder, Drone mode, Pitch Match, shared feedback UI.
 - **M2 (done):** Octave Jump, Scale Ladder.
 - **M3 (done):** ear-only drills.
-- **M4:** one-tap Start / Daily Mix, adaptive difficulty, weak-spot targeting, streaks, progress screens, surprises.
+- **M4 (done):** one-tap Start / Daily Mix, weak-spot targeting, streaks, progress screens, personal bests, bonus rounds, ear-drill round summaries.
 - **M5:** polish, onboarding, vocal-health prompts, settings, export/import, accessibility.
 
 ## Privacy

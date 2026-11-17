@@ -4,13 +4,15 @@ import { playFreq } from '../../audio/synth';
 import { getSettings, updateSettings } from '../../lib/settings';
 import { appendList, loadList, saveAttempt } from '../../db/db';
 import { DEFAULT_STAIRCASE, newStaircase, stepStaircase, thresholdEstimate, type Staircase } from '../../engine/staircase';
+import { useAutoStart } from '../../lib/embed';
+import { recordBest } from '../../lib/bests';
 import { Answers, EarShell, FeedbackLine, RoundPicker, RoundStatus, RoundSummaryCard, useLater, useRound, type Feedback } from './common';
 import { HL_DIMS, hlTags } from '../../engine/roundStats';
 
 // Two tones: is the second higher or lower? Adaptive staircase in cents.
 
 type Dir = 'higher' | 'lower';
-interface Point {
+export interface Point {
   ts: number;
   threshold: number;
 }
@@ -22,8 +24,9 @@ export function HigherLower() {
   const [chosen, setChosen] = useState<Dir | null>(null);
   const [tally, setTally] = useState({ n: 0, ok: 0 });
   const [history, setHistory] = useState<Point[]>([]);
+  const [pb, setPb] = useState<string | null>(null);
   const later = useLater();
-  const round = useRound(HL_DIMS);
+  const round = useRound(HL_DIMS, 'ear-hl');
   const scRef = useRef(sc);
   scRef.current = sc;
 
@@ -41,6 +44,8 @@ export function HigherLower() {
     playFreq(engine, t.base, { timbre: 'pure', duration: 0.5, when: t0 });
     playFreq(engine, second, { timbre: 'pure', duration: 0.5, when: t0 + 0.8 });
   }
+
+  useAutoStart(true, () => next());
 
   function next() {
     // base between A3 and E5, continuous so you can't learn the notes
@@ -65,7 +70,10 @@ export function HigherLower() {
     const finished = round.record({ correct, tags: hlTags(trial.delta, trial.dir, trial.base) });
     if (ns.trials % 15 === 0 || finished) {
       const est = thresholdEstimate(ns);
-      if (est != null) void appendList<Point>('hlHistory', { ts: Date.now(), threshold: est }).then(setHistory);
+      if (est != null) {
+        void appendList<Point>('hlHistory', { ts: Date.now(), threshold: est }).then(setHistory);
+        if (recordBest('hlThreshold', Math.round(est * 10) / 10, 'min')) setPb(`New best threshold: ${est.toFixed(1)}¢`);
+      }
     }
     if (!finished) later(next, correct ? 700 : 1400);
   }
@@ -82,8 +90,14 @@ export function HigherLower() {
       {round.summary ? (
         <RoundSummaryCard
           summary={round.summary}
+          newBest={round.newBest}
           onAgain={again}
-          extra={est != null ? <p className="muted">Current threshold ≈ {est.toFixed(1)}¢ (lower is better)</p> : null}
+          extra={
+            <>
+              {pb && <div className="pb">★ {pb}</div>}
+              {est != null && <p className="muted">Current threshold ≈ {est.toFixed(1)}¢ (lower is better)</p>}
+            </>
+          }
         />
       ) : (
       <section className="card">
@@ -104,6 +118,7 @@ export function HigherLower() {
             <RoundStatus round={round} />
             <Answers<Dir> options={['lower', 'higher']} label={(o) => (o === 'higher' ? '↑ Higher' : '↓ Lower')} onAnswer={answer} disabled={!!chosen} reveal={chosen ? { correct: trial.dir, chosen } : null} />
             <FeedbackLine fb={fb} />
+            {pb && <div className="pb">★ {pb}</div>}
             <button className="btn" onClick={() => play(trial)}>
               ↻ Replay
             </button>
@@ -116,7 +131,7 @@ export function HigherLower() {
   );
 }
 
-function ThresholdChart({ points }: { points: Point[] }) {
+export function ThresholdChart({ points }: { points: Point[] }) {
   const pts = points.slice(-30);
   const W = 300;
   const H = 120;

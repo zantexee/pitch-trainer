@@ -98,7 +98,7 @@ export function buildSession(o: BuildOptions): SessionPlan {
   const rounds: Round[] = [];
   const counts: Partial<Record<RoundType, number>> = {};
   let sum = 0;
-  while (sum < total - 30) {
+  while (sum < total) {
     const maxEach = Math.max(1, Math.ceil((total / 75) / 2));
     const prev = rounds[rounds.length - 1]?.type;
     let pool = allowed.filter((t) => t !== prev && (counts[t] ?? 0) < maxEach);
@@ -120,6 +120,9 @@ export function buildSession(o: BuildOptions): SessionPlan {
     const type: RoundType = bonus === 'hold' ? 'drone' : bonus === 'reverse-scale' ? 'ladder' : 'match';
     const at = Math.max(1, Math.floor(rounds.length / 2));
     rounds.splice(at, 0, { type, seconds: bonus === 'note-of-day' ? 45 : 60, bonus });
+    // The bonus replaces time, it doesn't add to it.
+    let sum2 = rounds.reduce((x, r) => x + r.seconds, 0);
+    while (sum2 > total + 30 && rounds.length > 2 && !rounds[rounds.length - 1].bonus) sum2 -= rounds.pop()!.seconds;
   }
   return { theme, minutes: o.minutes, rounds, silent: !!o.silent };
 }
@@ -140,3 +143,24 @@ export function extraRound(plan: SessionPlan, rand: () => number): Round {
   const pool = (Object.keys(BASE) as RoundType[]).filter((t) => t !== last && (!plan.silent || isEar(t)));
   return { type: pool[Math.floor(rand() * pool.length)], seconds: 75 };
 }
+
+export interface RoundResult {
+  type: RoundType;
+  bonus?: Bonus;
+  n: number;
+  ok: number;
+  bests: string[];
+  seconds: number;
+}
+
+export interface SavedSession {
+  date: string;
+  plan: SessionPlan;
+  index: number;
+  /** seconds left in the current round */
+  remaining: number;
+  results: RoundResult[];
+}
+
+/** Drone rounds pick one challenge. */
+export const DRONE_VARIANTS = ['hold', 'degree', 'slide'] as const;

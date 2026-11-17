@@ -6,6 +6,8 @@ import { initialState, leverValue, recordOutcome } from '../../engine/adaptive';
 import { cadence } from '../../engine/ladder';
 import { DEGREE_LEVELS, DEGREE_NAMES, degreeSet, resolution } from '../../engine/ear';
 import { solfege } from '../../engine/ladder';
+import { useAutoStart } from '../../lib/embed';
+import { bump, weakness, weightedPick } from '../../engine/weights';
 import { Answers, EAR_ADAPTIVE, EarShell, FeedbackLine, LEVEL_LEVER, playSeq, RoundPicker, RoundStatus, RoundSummaryCard, useLater, useRound, type Feedback } from './common';
 import type { Dimension } from '../../engine/roundStats';
 
@@ -29,7 +31,9 @@ export function ScaleDegrees() {
   const [msg, setMsg] = useState<string | null>(null);
   const count = useRef(0);
   const later = useLater();
-  const round = useRound(DIMS);
+  const round = useRound(DIMS, 'ear-degrees');
+
+  useAutoStart(true, () => next());
 
   function cadenceSeq(t: number) {
     return cadence('major').map((ch) => ch.map((o) => t + o));
@@ -49,7 +53,8 @@ export function ScaleDegrees() {
       lead = playSeq([[t - 12, t, t + 4, t + 7]], { timbre: 'organ', dur: 0.6 });
     }
     count.current++;
-    const d = degrees[Math.floor(Math.random() * degrees.length)];
+    // weak-spot targeting: degrees you miss come up more
+    const d = weightedPick(degrees, (x) => weakness(st.degreeStats[DEGREE_NAMES[x]]), Math.random);
     setDeg(d);
     setChosen(null);
     setFb(null);
@@ -65,7 +70,7 @@ export function ScaleDegrees() {
     const secs = playSeq(resolution(deg).map((o) => tonic + o), { timbre: 'pure', dur: 0.32, gap: 0.04 });
     const st = getSettings();
     const { state, change } = recordOutcome(st.earDegree ?? initialState(LEVERS), LEVERS, correct, EAR_ADAPTIVE);
-    updateSettings({ earDegree: state });
+    updateSettings({ earDegree: state, degreeStats: bump(st.degreeStats, DEGREE_NAMES[deg], correct) });
     setMsg(change ? (change.dir > 0 ? `New degree added: ${DEGREE_NAMES[degreeSet(change.to).slice(-1)[0]]}` : 'Back to fewer degrees') : null);
     setTally((x) => ({ n: x.n + 1, ok: x.ok + (correct ? 1 : 0) }));
     void saveAttempt({ ts: Date.now(), module: 'ear-degree', target: DEGREE_NAMES[deg], result: correct ? 'success' : `chose ${DEGREE_NAMES[d]}`, centsError: null, octaveError: 0, settleMs: null, stability: null, difficulty: { level, key: midiToName(tonic) } });
@@ -76,7 +81,7 @@ export function ScaleDegrees() {
   return (
     <EarShell title="Scale degrees" score={tally}>
       {round.summary ? (
-        <RoundSummaryCard summary={round.summary} onAgain={() => (round.reset(), next())}
+        <RoundSummaryCard summary={round.summary} newBest={round.newBest} onAgain={() => (round.reset(), next())}
           confusionLabel={(e, a) => `Heard ${e} as ${a}`} />
       ) : (
       <>

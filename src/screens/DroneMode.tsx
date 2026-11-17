@@ -18,6 +18,8 @@ import { PitchTrace } from '../ui/PitchTrace';
 import { CentsNeedle } from '../ui/CentsNeedle';
 import { Keyboard } from '../ui/Keyboard';
 import { ResultCard } from '../ui/ResultCard';
+import { useAutoStart, useEmbed } from '../lib/embed';
+import { recordBest } from '../lib/bests';
 
 type Tab = 'free' | 'hold' | 'degree' | 'slide';
 const HOLDS = [1000, 3000, 5000];
@@ -63,6 +65,30 @@ export function DroneMode() {
   useEffect(() => () => drone.stop(), []);
 
   const random = () => setMidi(pool[Math.floor(Math.random() * pool.length)]);
+  const embed = useEmbed();
+
+  if (embed) {
+    const chest = notesInRange(range, ['chest'], s.stretch);
+    const kind = (embed.bonus === 'hold' ? 'hold' : (embed.variant ?? 'hold')) as Exclude<Tab, 'free'>;
+    return (
+      <main className="screen">
+        <MicGate status={mic.status} error={mic.error}>
+          <div className="levels muted small">
+            Drone {midiToName(midi)} · {kind === 'hold' ? (embed.bonus === 'hold' ? 'longest hold' : 'hold') : kind === 'degree' ? 'intervals over the drone' : 'slide onto the note'}
+          </div>
+          <Challenge
+            kind={kind}
+            midi={midi}
+            pool={pool}
+            droneOpts={droneOpts}
+            setPlaying={setPlaying}
+            longest={embed.bonus === 'hold'}
+            onRound={() => setMidi(chest[Math.floor(Math.random() * chest.length)] ?? midi)}
+          />
+        </MicGate>
+      </main>
+    );
+  }
 
   return (
     <main className="screen">
@@ -234,9 +260,13 @@ interface ChallengeProps {
   pool: number[];
   droneOpts: Parameters<typeof drone.start>[1];
   setPlaying: (b: boolean) => void;
+  /** bonus round: hold as long as you can */
+  longest?: boolean;
+  onRound?: () => void;
 }
 
-function Challenge({ kind, midi, pool, droneOpts, setPlaying }: ChallengeProps) {
+function Challenge({ kind, midi, pool, droneOpts, setPlaying, longest, onRound }: ChallengeProps) {
+  const embed = useEmbed();
   const s = useSettings();
   const [phase, setPhase] = useState<'idle' | 'listen-drone' | 'sing' | 'result'>('idle');
   const [state, setState] = useState<AttemptLive | null>(null);
@@ -255,9 +285,10 @@ function Challenge({ kind, midi, pool, droneOpts, setPlaying }: ChallengeProps) 
     if (kind === 'slide') {
       return { target: midi, text: `Start ${fromAbove ? 'above' : 'below'} ${midiToName(midi)} and slide ${fromAbove ? 'down' : 'up'} onto it.`, holdMs: 1000, tol: 30 };
     }
+    if (longest) return { target: midi, text: `Hold ${midiToName(midi)} as long as you can, steady.`, holdMs: 60_000, tol: 30 };
     const hold = HOLDS[Math.min(HOLDS.length - 1, s.droneHoldLevel)];
     return { target: midi, text: `Hold ${midiToName(midi)} steady for ${hold / 1000} s.`, holdMs: hold, tol: 30 };
-  }, [kind, midi, pool, round, s.droneHoldLevel, fromAbove]);
+  }, [kind, midi, pool, round, s.droneHoldLevel, fromAbove, longest]);
 
   useEffect(() => () => abort.current?.abort(), []);
 
@@ -293,7 +324,7 @@ function Challenge({ kind, midi, pool, droneOpts, setPlaying }: ChallengeProps) 
       const res = await listen(targetHz, {
         toleranceCents: task.tol,
         holdMs: task.holdMs,
-        maxMs: task.holdMs + 8000,
+        maxMs: longest ? 40_000 : task.holdMs + 8000,
         silenceEndMs: 900,
         record: true,
         signal: ac.signal,
@@ -311,11 +342,18 @@ function Challenge({ kind, midi, pool, droneOpts, setPlaying }: ChallengeProps) 
           extra = `Start clearly ${fromAbove ? 'above' : 'below'} the note, then slide.`;
         } else if (res.score.locked) extra = 'Nice slide!';
       }
-      if (kind === 'hold' && res.score.locked && s.droneHoldLevel < HOLDS.length - 1) {
+      if (longest) success = res.score.longestHoldMs >= 3000;
+      if (kind === 'hold' && !longest && res.score.locked && s.droneHoldLevel < HOLDS.length - 1) {
         updateSettings({ droneHoldLevel: s.droneHoldLevel + 1 });
         extra = `Level up: next hold is ${HOLDS[s.droneHoldLevel + 1] / 1000} s`;
       }
-      if (kind === 'hold' && !res.score.locked && res.score.longestHoldMs > 0) extra = `Longest steady: ${(res.score.longestHoldMs / 1000).toFixed(1)} s`;
+      if (kind === 'hold' && (longest || !res.score.locked) && res.score.longestHoldMs > 0) extra = `Longest steady: ${(res.score.longestHoldMs / 1000).toFixed(1)} s`;
+      let best: string | null = null;
+      if (kind === 'hold' && res.score.longestHoldMs >= 1000 && recordBest('hold', Math.round(res.score.longestHoldMs / 100) / 10)) {
+        best = `New best: ${(res.score.longestHoldMs / 1000).toFixed(1)} s steady within ±${task.tol}¢`;
+        extra = best;
+      }
+      embed?.report({ ok: success, best });
       void saveAttempt({
         ts: Date.now(),
         module: `drone-${kind}`,
@@ -334,7 +372,10 @@ function Challenge({ kind, midi, pool, droneOpts, setPlaying }: ChallengeProps) 
     }
   }
 
+  useAutoStart(true, () => void run());
+
   const next = () => {
+    onRound?.();
     setRound((r) => r + 1);
     setPhase('idle');
     setOutcome(null);
@@ -343,7 +384,7 @@ function Challenge({ kind, midi, pool, droneOpts, setPlaying }: ChallengeProps) 
   return (
     <section className="card">
       <p className="instruction">{task.text}</p>
-      {kind === 'hold' && (
+      {kind === 'hold' && !embed && (
         <div className="chips">
           {HOLDS.map((h, i) => (
             <button key={h} className={`chip ${s.droneHoldLevel === i ? 'on' : ''}`} onClick={() => updateSettings({ droneHoldLevel: i })}>

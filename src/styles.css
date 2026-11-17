@@ -966,3 +966,291 @@ select {
   font-variant-numeric: tabular-nums;
   color: var(--muted);
 }
+
+/* ---------- M4: Home, Daily Mix, Progress ---------- */
+.home-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.streak-pill.big {
+  border: none;
+  font-size: 1rem;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.btn-huge .btn-sub {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 550;
+  opacity: 0.75;
+}
+.theme-chip {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--blue);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.center-self {
+  align-self: center;
+}
+.repair {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #2a2414;
+  color: var(--amber);
+  font-size: 0.9rem;
+}
+.week-card {
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  gap: 6px;
+}
+.week-row {
+  display: flex;
+  justify-content: space-between;
+}
+.week-stats {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.week-stats strong {
+  font-size: 1.25rem;
+}
+.up {
+  color: var(--green);
+}
+.down {
+  color: var(--amber);
+}
+
+.session-round > .screen {
+  padding: 0;
+}
+.session-bar {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.session-title {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.session-time {
+  font-size: 1.4rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.2em;
+  text-align: right;
+}
+.session-time.wrap {
+  font-size: 0.85rem;
+  color: var(--amber);
+}
+.session-progress {
+  display: flex;
+  gap: 3px;
+  height: 6px;
+  margin-top: -8px;
+}
+.session-progress .seg {
+  flex-basis: 0;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.session-progress .seg.done {
+  background: var(--green);
+}
+.session-progress .seg.bonus:not(.done) {
+  background: #3a2f4f;
+}
+.session-progress .fill {
+  height: 100%;
+  background: var(--green);
+  transition: width 900ms linear;
+}
+.card.intro {
+  align-items: center;
+  text-align: center;
+  padding: 36px 16px;
+  cursor: pointer;
+}
+.card.intro h2 {
+  margin: 0;
+  font-size: 1.8rem;
+}
+.card.intro p {
+  margin: 0;
+}
+.card.intro .btn {
+  position: relative;
+  overflow: hidden;
+  min-width: 140px;
+}
+.card.intro.bonus {
+  border-color: #8a6fd1;
+  background: linear-gradient(160deg, #221c33, var(--surface));
+}
+.bonus-tag {
+  color: #c7b4ff;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+.session-controls {
+  position: sticky;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+}
+.session-controls .btn {
+  background: var(--surface-2);
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  top: calc(12px + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #1d3b2e;
+  color: var(--green);
+  font-weight: 650;
+  animation: toast 3.5s ease forwards;
+  pointer-events: none;
+}
+@keyframes toast {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -8px);
+  }
+  10%,
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.streak-line {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+}
+
+.streak-big {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.streak-num {
+  font-size: 2.6rem;
+  font-weight: 750;
+  line-height: 1;
+}
+.kv.compact {
+  min-width: 9em;
+}
+.cal {
+  display: flex;
+  gap: 3px;
+}
+.cal-days,
+.cal-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+.cal-days {
+  flex: 0 0 auto;
+  font-size: 0.65rem;
+}
+.cal-days span {
+  height: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.cal-cell {
+  display: inline-block;
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--surface-2);
+  min-width: 10px;
+}
+.cal-legend .cal-cell {
+  width: 10px;
+  vertical-align: middle;
+  margin-left: 6px;
+}
+.cal-cell.l1 {
+  background: #22392f;
+}
+.cal-cell.l2 {
+  background: #2f6b4f;
+}
+.cal-cell.l3 {
+  background: #3fa173;
+}
+.cal-cell.l4 {
+  background: var(--green);
+}
+.cal-cell.frozen {
+  background: #3a6f9a;
+}
+.cal-cell.repaired {
+  background: #2f6b4f;
+  outline: 1px dashed var(--amber);
+}
+.cal-cell.future {
+  background: transparent;
+}
+.cal-cell.today {
+  outline: 1px solid var(--text);
+}
+.cal-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 4px;
+}
+.note-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 2px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  background: var(--surface-2);
+}
+.note-cell small {
+  font-variant-numeric: tabular-nums;
+}
+.note-cell.good {
+  background: #1f4a37;
+}
+.note-cell.mid {
+  background: #4a3b16;
+}
+.note-cell.low {
+  background: #4a2323;
+}
+.note-cell.none {
+  opacity: 0.45;
+}

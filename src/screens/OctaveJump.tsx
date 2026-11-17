@@ -18,6 +18,8 @@ import { MicGate } from '../ui/MicGate';
 import { PitchTrace } from '../ui/PitchTrace';
 import { CentsNeedle } from '../ui/CentsNeedle';
 import { ResultCard } from '../ui/ResultCard';
+import { useAutoStart, useEmbed } from '../lib/embed';
+import { nextRun } from '../lib/bests';
 
 // Octave Jump: hear a note in one register, sing it in another without
 // hearing it first. Pitch class and octave are scored separately, then the
@@ -64,6 +66,8 @@ export function OctaveJump() {
   const [tally, setTally] = useState({ n: 0, ok: 0 });
   const abort = useRef<AbortController | null>(null);
   const prev = useRef<OctaveTask | null>(null);
+  const run = useRef(0);
+  const embed = useEmbed();
 
   const adaptive = s.octaveJump ?? initialState(OJ_LEVERS);
   const stage = leverValue(OJ_LEVERS, adaptive, 'stage') as number;
@@ -141,8 +145,13 @@ export function OctaveJump() {
         difficulty: { stage: leverValue(OJ_LEVERS, ad, 'stage') as number, tol: trialTol, pair: key },
       });
       setTally((x) => ({ n: x.n + 1, ok: x.ok + (success ? 1 : 0) }));
-      let msg: string | null = null;
-      if (change?.lever === 'stage') msg = change.dir > 0 ? `New stage: ${OCTAVE_STAGES[change.to]}` : `Back to: ${OCTAVE_STAGES[change.to]}`;
+      const r = nextRun(run.current, success, 'run:octave-jump');
+      run.current = r.run;
+      embed?.report({ ok: success, best: r.best });
+      let msg: string | null = r.best;
+      if (msg) {
+        /* personal best wins the message slot */
+      } else if (change?.lever === 'stage') msg = change.dir > 0 ? `New stage: ${OCTAVE_STAGES[change.to]}` : `Back to: ${OCTAVE_STAGES[change.to]}`;
       else if (change) msg = change.dir > 0 ? 'Getting harder: tolerance' : 'Easing off: tolerance';
       setOutcome({ score: sc, samples: res.attempt.samples, recordingUrl: res.recordingUrl, pcOk, octOk, msg });
       await sleep(Math.max(0, ((rv.endTime ?? engine.now + 1.4) - engine.now) * 1000), ac.signal);
@@ -152,18 +161,26 @@ export function OctaveJump() {
     }
   }
 
+  useAutoStart(mic.status === 'ready', () => void runTrial());
+  useEffect(() => {
+    if (embed && status === 'running' && phase === 'paused') void runTrial();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
   const stats = s.octaveStats;
   const pairRows = Object.entries(stats).sort((a, b) => b[1].n - a[1].n);
 
   return (
     <main className="screen">
-      <header className="bar">
-        <button className="btn ghost" onClick={() => go('/')}>
-          ‹ Home
-        </button>
-        <h2>Octave Jump</h2>
-        <span className="muted small push">{tally.n > 0 && `${tally.ok}/${tally.n}`}</span>
-      </header>
+      {!embed && (
+        <header className="bar">
+          <button className="btn ghost" onClick={() => go('/')}>
+            ‹ Home
+          </button>
+          <h2>Octave Jump</h2>
+          <span className="muted small push">{tally.n > 0 && `${tally.ok}/${tally.n}`}</span>
+        </header>
+      )}
       <MicGate status={mic.status} error={mic.error}>
         <div className="levels muted small">
           Stage {effective.stage + 1}: {OCTAVE_STAGES[effective.stage]} · ±{leverValue(OJ_LEVERS, adaptive, 'tol') as number}¢
@@ -203,9 +220,11 @@ export function OctaveJump() {
                   <CentsNeedle state={phase === 'sing' ? liveState : null} toleranceCents={tol} holdMs={HOLD_MS} />
                   <PitchTrace a4={s.a4} targetHz={noteToFreq(task.target, s.a4)} toleranceCents={tol} />
                   <div className="row">
-                    <button className="btn" onClick={() => (abort.current?.abort(), setPhase('paused'))}>
-                      ❚❚ Pause
-                    </button>
+                    {!embed && (
+                      <button className="btn" onClick={() => (abort.current?.abort(), setPhase('paused'))}>
+                        ❚❚ Pause
+                      </button>
+                    )}
                     <button className="btn grow" onClick={() => void runTrial()}>
                       Skip ›
                     </button>
@@ -237,7 +256,7 @@ export function OctaveJump() {
             </>
           ) : null}
         </section>
-        {pairRows.length > 0 && (
+        {pairRows.length > 0 && !embed && (
           <section className="card">
             <h3>By register pair</h3>
             <dl className="kv">
