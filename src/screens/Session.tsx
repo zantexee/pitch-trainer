@@ -38,6 +38,9 @@ export function resumeSession() {
 
 const BONUS_ICON = '🎁';
 const INTRO_MS = 2200;
+// The very first round gets a quick title flash so sound starts within ~3 s of tapping Start.
+const FIRST_INTRO_MS = 600;
+const introMs = (i: number) => (i === 0 ? FIRST_INTRO_MS : INTRO_MS);
 const WRAP_MAX_MS: Record<'ear' | 'sing', number> = { ear: 6000, sing: 12000 };
 
 const DESCRIBE: Record<RoundType, string> = {
@@ -129,7 +132,7 @@ export function Session() {
   // Intro card → round.
   useEffect(() => {
     if (phase !== 'intro') return;
-    const id = setTimeout(() => beginRound(), INTRO_MS);
+    const id = setTimeout(() => beginRound(), introMs(index));
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, index]);
@@ -279,7 +282,7 @@ export function Session() {
           <p className="muted small">{Math.round(round.seconds)} s</p>
           <button className="btn primary">
             Go
-            <span className="auto-bar" style={{ animationDuration: `${INTRO_MS}ms` }} />
+            <span className="auto-bar" style={{ animationDuration: `${introMs(index)}ms` }} />
           </button>
         </section>
       )}
