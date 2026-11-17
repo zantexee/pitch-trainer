@@ -121,7 +121,7 @@ button {
   border-color: transparent;
 }
 .btn.small {
-  min-height: 36px;
+  min-height: var(--tap);
   padding: 0 10px;
 }
 .btn-huge {
@@ -253,7 +253,7 @@ button {
 }
 select {
   font: inherit;
-  min-height: 36px;
+  min-height: var(--tap);
   background: var(--surface-2);
   color: var(--text);
   border: 1px solid var(--line);
