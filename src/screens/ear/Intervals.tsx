@@ -4,10 +4,15 @@ import { saveAttempt } from '../../db/db';
 import { initialState, leverValue, recordOutcome } from '../../engine/adaptive';
 import { INTERVAL_LEVELS, INTERVAL_NAMES, type IntervalDir } from '../../engine/ear';
 import type { Timbre } from '../../audio/synth';
-import { Answers, EAR_ADAPTIVE, EarShell, FeedbackLine, LEVEL_LEVER, playSeq, useLater, type Feedback } from './common';
+import { Answers, EAR_ADAPTIVE, EarShell, FeedbackLine, LEVEL_LEVER, playSeq, RoundPicker, RoundStatus, RoundSummaryCard, useLater, useRound, type Feedback } from './common';
+import type { Dimension } from '../../engine/roundStats';
 
 // Intervals, interleaved from the start. Ascending → + descending → + harmonic.
 
+const DIMS: Dimension[] = [
+  { key: 'interval', label: 'Interval' },
+  { key: 'dir', label: 'Direction', order: ['ascending', 'descending', 'together'] },
+];
 const LEVERS = LEVEL_LEVER(INTERVAL_LEVELS.length);
 const TIMBRES: Timbre[] = ['pure', 'bright', 'organ', 'pad'];
 const DIR_LABEL: Record<IntervalDir, string> = { up: 'ascending', down: 'descending', harmonic: 'together' };
@@ -29,6 +34,7 @@ export function Intervals() {
   const [tally, setTally] = useState({ n: 0, ok: 0 });
   const [msg, setMsg] = useState<string | null>(null);
   const later = useLater();
+  const round = useRound(DIMS);
 
   function play(x: Q) {
     const top = x.base + x.semis;
@@ -67,11 +73,17 @@ export function Intervals() {
     } else setMsg(null);
     setTally((x) => ({ n: x.n + 1, ok: x.ok + (correct ? 1 : 0) }));
     void saveAttempt({ ts: Date.now(), module: 'ear-interval', target: `${INTERVAL_NAMES[q.semis]} ${q.dir}`, result: correct ? 'success' : `chose ${INTERVAL_NAMES[semis]}`, centsError: null, octaveError: 0, settleMs: null, stability: null, difficulty: { level: leverValue(LEVERS, ad, 'level') as number } });
-    later(next, correct ? 900 : 2600);
+    const finished = round.record({ correct, tags: { interval: INTERVAL_NAMES[q.semis], dir: DIR_LABEL[q.dir] }, expected: INTERVAL_NAMES[q.semis], answer: INTERVAL_NAMES[semis] }, 2400);
+    if (!finished) later(next, correct ? 900 : 2600);
   }
 
   return (
     <EarShell title="Intervals" score={tally}>
+      {round.summary ? (
+        <RoundSummaryCard summary={round.summary} onAgain={() => (round.reset(), next())}
+          confusionLabel={(e, a) => `${e} heard as ${a}`} />
+      ) : (
+      <>
       <section className="card">
         <p className="instruction">Name the interval.</p>
         <div className="ear-stat muted">
@@ -80,11 +92,15 @@ export function Intervals() {
         </div>
         {msg && <div className="pb">★ {msg}</div>}
         {!q ? (
-          <button className="btn-huge" onClick={next}>
-            Start
-          </button>
+          <>
+            <RoundPicker />
+            <button className="btn-huge" onClick={next}>
+              Start
+            </button>
+          </>
         ) : (
           <>
+            <RoundStatus round={round} />
             <Answers<number> options={lv.intervals} label={(o) => INTERVAL_NAMES[o]} onAnswer={answer} disabled={chosen != null} reveal={chosen != null ? { correct: q.semis, chosen } : null} />
             <FeedbackLine fb={fb} />
             <button className="btn" onClick={() => play(q)}>
@@ -93,6 +109,8 @@ export function Intervals() {
           </>
         )}
       </section>
+      </>
+      )}
     </EarShell>
   );
 }

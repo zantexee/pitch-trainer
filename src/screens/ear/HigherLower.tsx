@@ -4,7 +4,8 @@ import { playFreq } from '../../audio/synth';
 import { getSettings, updateSettings } from '../../lib/settings';
 import { appendList, loadList, saveAttempt } from '../../db/db';
 import { DEFAULT_STAIRCASE, newStaircase, stepStaircase, thresholdEstimate, type Staircase } from '../../engine/staircase';
-import { Answers, EarShell, FeedbackLine, useLater, type Feedback } from './common';
+import { Answers, EarShell, FeedbackLine, RoundPicker, RoundStatus, RoundSummaryCard, useLater, useRound, type Feedback } from './common';
+import { HL_DIMS, hlTags } from '../../engine/roundStats';
 
 // Two tones: is the second higher or lower? Adaptive staircase in cents.
 
@@ -22,6 +23,7 @@ export function HigherLower() {
   const [tally, setTally] = useState({ n: 0, ok: 0 });
   const [history, setHistory] = useState<Point[]>([]);
   const later = useLater();
+  const round = useRound(HL_DIMS);
   const scRef = useRef(sc);
   scRef.current = sc;
 
@@ -60,29 +62,46 @@ export function HigherLower() {
     updateSettings({ hlDelta: ns.delta });
     setTally((x) => ({ n: x.n + 1, ok: x.ok + (correct ? 1 : 0) }));
     void saveAttempt({ ts: Date.now(), module: 'ear-higher-lower', target: `${Math.round(trial.delta)}¢`, result: correct ? 'success' : 'miss', centsError: trial.delta, octaveError: 0, settleMs: null, stability: null, difficulty: { delta: trial.delta } });
-    if (ns.trials % 15 === 0) {
+    const finished = round.record({ correct, tags: hlTags(trial.delta, trial.dir, trial.base) });
+    if (ns.trials % 15 === 0 || finished) {
       const est = thresholdEstimate(ns);
       if (est != null) void appendList<Point>('hlHistory', { ts: Date.now(), threshold: est }).then(setHistory);
     }
-    later(next, correct ? 700 : 1400);
+    if (!finished) later(next, correct ? 700 : 1400);
   }
+
+  const again = () => {
+    round.reset();
+    next();
+  };
 
   const est = thresholdEstimate(sc);
 
   return (
     <EarShell title="Higher or lower?" score={tally}>
+      {round.summary ? (
+        <RoundSummaryCard
+          summary={round.summary}
+          onAgain={again}
+          extra={est != null ? <p className="muted">Current threshold ≈ {est.toFixed(1)}¢ (lower is better)</p> : null}
+        />
+      ) : (
       <section className="card">
         <p className="instruction">Two tones. Is the second one higher or lower?</p>
         <div className="ear-stat">
-          Difference <strong>{sc.delta < 10 ? sc.delta.toFixed(1) : Math.round(sc.delta)}¢</strong>
+          {chosen && trial ? `That was ${trial.delta < 10 ? trial.delta.toFixed(1) : Math.round(trial.delta)}¢ ${trial.dir}. ` : ''}Next difference <strong>{sc.delta < 10 ? sc.delta.toFixed(1) : Math.round(sc.delta)}¢</strong>
           {est != null && <span className="muted"> · threshold ≈ {est.toFixed(1)}¢</span>}
         </div>
         {!trial ? (
-          <button className="btn-huge" onClick={next}>
-            Start
-          </button>
+          <>
+            <RoundPicker />
+            <button className="btn-huge" onClick={next}>
+              Start
+            </button>
+          </>
         ) : (
           <>
+            <RoundStatus round={round} />
             <Answers<Dir> options={['lower', 'higher']} label={(o) => (o === 'higher' ? '↑ Higher' : '↓ Lower')} onAnswer={answer} disabled={!!chosen} reveal={chosen ? { correct: trial.dir, chosen } : null} />
             <FeedbackLine fb={fb} />
             <button className="btn" onClick={() => play(trial)}>
@@ -91,6 +110,7 @@ export function HigherLower() {
           </>
         )}
       </section>
+      )}
       {history.length > 1 && <ThresholdChart points={history} />}
     </EarShell>
   );

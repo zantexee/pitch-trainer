@@ -35,6 +35,8 @@ export interface Settings {
   labelMode: 'names' | 'degrees' | 'solfege';
   /** last Higher-or-lower difference, so the staircase resumes where it left off */
   hlDelta: number | null;
+  /** trials per ear-drill round; 0 = unlimited */
+  earRoundLength: number;
   earDegree: AdaptiveState | null;
   earInterval: AdaptiveState | null;
   earOctave: AdaptiveState | null;
@@ -62,6 +64,7 @@ export const DEFAULT_SETTINGS: Settings = {
   ladderKey: 'cadence',
   labelMode: 'names',
   hlDelta: null,
+  earRoundLength: 20,
   earDegree: null,
   earInterval: null,
   earOctave: null,
