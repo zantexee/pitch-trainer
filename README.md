@@ -180,6 +180,16 @@ Silence tests: digital silence, quiet room noise after calibration, and loud whi
 - **Ear-drill rounds**: pick 10, 20, 50 or ∞ trials. The summary shows %, best run, where the problems were (by degree, interval, direction, size, register…), the most common mix-ups ("heard 3 as 5") and a breakdown bar chart.
 - **Progress** screen: streak card with mode switch, a 16-week calendar heatmap (freezes and repairs marked), this week vs. last, Pitch Match accuracy per note, scale-degree, interval and register-pair grids, the Higher-or-lower threshold chart, weekly median time-to-lock, personal bests and range over time. Home shows a compact weekly card ("Most improved: …").
 
+### Scales menu
+
+**Scales** on Home (`screens/Scales.tsx`, logic in `engine/scales.ts`): all 12 keys × major, natural minor, harmonic minor and melodic minor (raised 6th and 7th going up, natural coming down). The scale is placed where it best fits your chest range (falsetto next; never down into the experimental low voice), with − / + octave buttons.
+
+- **Tone / Drone** switch for how each note sounds: *Tone* is short and fades out; *Drone* keeps the note sounding until the next note, a second tap, or Stop.
+- **Root drone** toggle: hums the tonic underneath (it pauses while you sing on the speaker, so the mic can hear you; with headphones it stays on).
+- **Play**: tap any key in the scale (others are dimmed), or loop the scale up and down at slow / medium / fast.
+- **Sing it**: each note plays, then the app waits until you sing it and hold it for 0.5 s within ±35¢ (no time limit; *Hear it*, *Skip note*). Setup folds away while you sing so the pitch display fits. Each note is saved as an attempt.
+- **Stop** cuts every sound at once.
+
 ### Polish, onboarding, voice care, settings, backup (M5)
 
 - **First run** (`screens/Onboarding.tsx`, ~30 s): *Let's go* starts audio inside the tap and plays a chord → "Can you hear the chord?" (No shows the silent-switch / volume hint and plays it again) → phone speaker, wired headphones or AirPods → "Stop if it hurts or you get hoarse" with the warm-up toggle → range finder (or *Later*). Existing users who already have a range skip it; *Settings → Replay intro* shows it again.

@@ -14,6 +14,7 @@ import { Intervals } from './screens/ear/Intervals';
 import { WhichOctave } from './screens/ear/WhichOctave';
 import { NoteOfDay } from './screens/ear/NoteOfDay';
 import { Session } from './screens/Session';
+import { Scales } from './screens/Scales';
 import { Progress } from './screens/Progress';
 import { AudioGate } from './ui/AudioGate';
 import { usePracticeClock } from './lib/practice';
@@ -39,6 +40,7 @@ const SCREENS: Record<string, () => ReactNode> = {
   '/ear/octave': () => <WhichOctave />,
   '/ear/note-of-day': () => <NoteOfDay />,
   '/session': () => <Session />,
+  '/scales': () => <Scales />,
 };
 
 export function App() {

@@ -137,6 +137,10 @@ export function Home() {
           <strong>Scale Ladder</strong>
           <span className="muted small">Sing up and down the scale</span>
         </button>
+        <button className="mode" onClick={() => go('/scales')}>
+          <strong>Scales</strong>
+          <span className="muted small">Every major and minor scale: play or sing</span>
+        </button>
         <button className="mode" onClick={() => go('/ear')}>
           <strong>Ear training</strong>
           <span className="muted small">Silent drills, no singing</span>

@@ -1379,3 +1379,95 @@ button:focus:not(:focus-visible) {
     --line: #4a5468;
   }
 }
+
+/* ---------- Scales ---------- */
+.key-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+}
+.key-grid .chip {
+  padding: 0;
+}
+.octave-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sound-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.seg-toggle {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.seg-toggle button {
+  min-height: var(--tap);
+  padding: 0 18px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.seg-toggle button.on {
+  background: var(--green);
+  color: #06120c;
+  font-weight: 650;
+}
+.toggle.compact {
+  margin: 0;
+}
+.scale-notes {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 4px;
+}
+.sn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 0;
+  border-radius: 8px;
+  background: var(--surface-2);
+  font-size: 0.85rem;
+}
+.sn small {
+  color: var(--muted);
+}
+.sn.cur {
+  background: #1d3b2e;
+  outline: 1px solid var(--green);
+}
+.sing-progress {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+.sing-progress span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+}
+.sing-progress span.cur {
+  border-color: var(--green);
+}
+.sing-progress span.ok {
+  background: var(--green);
+  border-color: var(--green);
+}
+.sing-progress span.skip {
+  background: var(--muted);
+}
+.btn.stop {
+  border-color: #6b2f2f;
+}

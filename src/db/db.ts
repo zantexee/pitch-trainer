@@ -63,6 +63,13 @@ export interface Settings {
   /** today's voice-break state: prompt again after `snoozeAt` seconds of singing */
   voiceBreak: { date: string; snoozeAt: number } | null;
   healthTipShown: boolean;
+  /** Scales menu */
+  scaleKey: number;
+  scaleType: 'major' | 'minor' | 'harmonic' | 'melodic';
+  scaleOctave: number;
+  scaleNoteSound: 'tone' | 'drone';
+  scaleRootDrone: boolean;
+  scaleSpeed: 'slow' | 'medium' | 'fast';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -104,6 +111,12 @@ export const DEFAULT_SETTINGS: Settings = {
   voiceBreakMin: 20,
   voiceBreak: null,
   healthTipShown: false,
+  scaleKey: 0,
+  scaleType: 'major',
+  scaleOctave: 0,
+  scaleNoteSound: 'tone',
+  scaleRootDrone: false,
+  scaleSpeed: 'medium',
 };
 
 interface KV {
