@@ -89,3 +89,29 @@ function normalise(buf: Float32Array, targetRms: number) {
   const g = targetRms / r;
   for (let i = 0; i < buf.length; i++) buf[i] *= g;
 }
+
+/**
+ * A "hard" voice: weak 1st and 3rd harmonics, dominant 2nd (some vowels, or a
+ * phone mic rolling off the fundamental), with vibrato, random pitch jitter,
+ * amplitude shimmer and noise. This is what made the detector read G5 for a
+ * sung G4 on a real iPhone.
+ */
+export function makeHardVoice(f0: number, sr: number, seconds: number, h1: number, h3: number, noise: number, seed = 1): Float32Array {
+  const n = Math.round(sr * seconds);
+  const r = rng(seed);
+  const x = new Float32Array(n);
+  let ph = 0;
+  let jit = 0;
+  let amp = 1;
+  for (let i = 0; i < n; i++) {
+    jit += (r() - 0.5) * 0.6;
+    jit *= 0.999;
+    amp = Math.min(1.2, Math.max(0.8, amp + (r() - 0.5) * 0.02));
+    const f = f0 * Math.pow(2, (30 * Math.sin((2 * Math.PI * 5.5 * i) / sr) + jit) / 1200);
+    ph += (2 * Math.PI * f) / sr;
+    x[i] =
+      amp * 0.2 * (h1 * Math.sin(ph) + Math.sin(2 * ph + 0.3) + h3 * Math.sin(3 * ph + 1) + 0.3 * Math.sin(4 * ph + 2) + 0.1 * Math.sin(5 * ph)) +
+      noise * (2 * r() - 1);
+  }
+  return x;
+}

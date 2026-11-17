@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Detector, windowSizeFor, calibrateNoiseGate } from '../src/pitch/detector';
 import { PitchTracker } from '../src/pitch/tracker';
 import { cents, nameToMidi, noteToFreq } from '../src/lib/notes';
-import { makeSignal, rng, type SignalKind } from './signals';
+import { makeHardVoice, makeSignal, rng, type SignalKind } from './signals';
 
 const NOTES = ['A1', 'C2', 'E2', 'A2', 'C3', 'C4', 'A4', 'C5', 'C6'];
 const RATES = [44100, 48000];
@@ -112,4 +112,52 @@ describe('window size', () => {
     expect(windowSizeFor(440)).toBe(2048);
     expect(windowSizeFor(null)).toBe(4096);
   });
+});
+
+describe('octave-up guard (weak fundamental, dominant 2nd harmonic)', () => {
+  const cases: [number, number][] = [
+    [0.15, 0.1],
+    [0.08, 0.05],
+    [0.3, 0.1],
+  ];
+  for (const name of ['C3', 'G3', 'C4', 'G4', 'C5']) {
+    for (const [h1, h3] of cases) {
+      for (const noise of [0.01, 0.04]) {
+        it(`${name} h1=${h1} h3=${h3} noise=${noise}`, () => {
+          const sr = 48000;
+          const f0 = noteToFreq(nameToMidi(name)!);
+          const x = makeHardVoice(f0, sr, 1.5, h1, h3, noise, 11);
+          const det = new Detector();
+          let octaveErrors = 0;
+          let accepted = 0;
+          for (const hint of [f0, null]) {
+            const size = windowSizeFor(hint);
+            for (let end = 4096; end <= x.length; end += HOP) {
+              const fr = det.analyze(x.subarray(end - size, end), sr, hint);
+              if (fr.freq == null) continue;
+              accepted++;
+              if (Math.abs(cents(fr.freq, f0)) > 600) octaveErrors++;
+            }
+          }
+          expect(accepted).toBeGreaterThan(20);
+          expect(octaveErrors).toBe(0);
+        });
+      }
+    }
+  }
+  // The guard must not drag genuinely higher notes down an octave.
+  for (const name of ['G4', 'G5', 'C6']) {
+    it(`genuine ${name} with jitter is not read an octave low`, () => {
+      const sr = 48000;
+      const f0 = noteToFreq(nameToMidi(name)!);
+      const x = makeHardVoice(f0, sr, 1.5, 1, 0.4, 0.02, 5);
+      const det = new Detector();
+      let bad = 0;
+      for (let end = 2048; end <= x.length; end += HOP) {
+        const fr = det.analyze(x.subarray(end - 2048, end), sr, f0);
+        if (fr.freq != null && Math.abs(cents(fr.freq, f0)) > 600) bad++;
+      }
+      expect(bad).toBe(0);
+    });
+  }
 });

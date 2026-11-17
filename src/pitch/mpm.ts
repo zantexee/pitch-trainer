@@ -21,6 +21,14 @@ export class BoundedMpm {
   readonly size: number;
   /** MPM constant k: pick the first key maximum ≥ k · highest maximum. */
   k = 0.9;
+  /**
+   * Octave-up guard: if the peak at twice the chosen lag is clearly more
+   * periodic (by this NSDF margin), the chosen peak was a harmonic, not the
+   * fundamental. Happens on voices whose 1st and 3rd harmonics are weak
+   * (some vowels, phone mics with low-frequency roll-off): MPM then reads
+   * G5 when you sing G4.
+   */
+  subOctaveMargin = 0.01;
 
   constructor(size: number) {
     this.size = size;
@@ -69,7 +77,16 @@ export class BoundedMpm {
     let nMax = -Infinity;
     for (const p of peaks) nMax = Math.max(nMax, nsdf[p]);
     const threshold = this.k * nMax;
-    const chosen = peaks.find((p) => nsdf[p] >= threshold)!;
+    let chosen = peaks.find((p) => nsdf[p] >= threshold)!;
+
+    // Check the lag one octave down (2x period), repeatedly.
+    for (;;) {
+      const lo = Math.floor(chosen * 2 * 0.97);
+      const hi = Math.ceil(chosen * 2 * 1.03);
+      const sub = peaks.find((p) => p >= lo && p <= hi);
+      if (sub === undefined || nsdf[sub] < nsdf[chosen] + this.subOctaveMargin) break;
+      chosen = sub;
+    }
 
     // Parabolic interpolation around the chosen peak.
     const a = nsdf[chosen - 1];
