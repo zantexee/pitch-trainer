@@ -35,6 +35,14 @@ export function Home() {
           <strong>Pitch Match</strong>
           <span className="muted small">Hear a note, sing it back</span>
         </button>
+        <button className="mode" onClick={() => go('/octave')}>
+          <strong>Octave Jump</strong>
+          <span className="muted small">Same note, another register</span>
+        </button>
+        <button className="mode" onClick={() => go('/ladder')}>
+          <strong>Scale Ladder</strong>
+          <span className="muted small">Sing up and down the scale</span>
+        </button>
         <button className="mode" onClick={() => go('/drone')}>
           <strong>Drone</strong>
           <span className="muted small">Sustained notes, holds, intervals, slides</span>

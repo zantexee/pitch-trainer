@@ -25,6 +25,14 @@ export interface Settings {
   droneHoldLevel: number;
   /** Notes Pitch Match has seen, with recent outcomes (for doubling and ears-only trials). */
   noteHistory: Record<string, boolean[]>;
+  octaveJump: AdaptiveState | null;
+  /** success per register pair, e.g. "chest→falsetto" */
+  octaveStats: Record<string, { n: number; ok: number }>;
+  ladder: AdaptiveState | null;
+  ladderTimed: boolean;
+  ladderKey: 'cadence' | 'drone';
+  /** note labels in Scale Ladder */
+  labelMode: 'names' | 'degrees' | 'solfege';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -41,6 +49,12 @@ export const DEFAULT_SETTINGS: Settings = {
   pitchMatch: null,
   droneHoldLevel: 0,
   noteHistory: {},
+  octaveJump: null,
+  octaveStats: {},
+  ladder: null,
+  ladderTimed: false,
+  ladderKey: 'cadence',
+  labelMode: 'names',
 };
 
 interface KV {

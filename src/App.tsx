@@ -5,6 +5,8 @@ import { Diagnostics } from './screens/Diagnostics';
 import { RangeFinder } from './screens/RangeFinder';
 import { DroneMode } from './screens/DroneMode';
 import { PitchMatch } from './screens/PitchMatch';
+import { OctaveJump } from './screens/OctaveJump';
+import { ScaleLadder } from './screens/ScaleLadder';
 import { AudioGate } from './ui/AudioGate';
 import { mic, live, drone } from './audio';
 import { keepAwake } from './lib/wakeLock';
@@ -15,6 +17,8 @@ const SCREENS: Record<string, () => ReactNode> = {
   '/range': () => <RangeFinder />,
   '/drone': () => <DroneMode />,
   '/match': () => <PitchMatch />,
+  '/octave': () => <OctaveJump />,
+  '/ladder': () => <ScaleLadder />,
 };
 
 export function App() {

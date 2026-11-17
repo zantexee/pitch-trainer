@@ -2,7 +2,7 @@
 
 A pitch-training Progressive Web App for iPhone (and desktop): singing pitch with live mic feedback, plus silent ear-training drills. No backend, no accounts, no analytics. Audio is never uploaded or kept.
 
-**Status: Milestone 1.** On top of the M0 audio foundation it has the voice range finder, Drone mode (free singing, holds, scale degrees, slides), Pitch Match with adaptive difficulty, and the shared feedback UI (live trace, cents needle, result card). The daily session, streaks and progress screens come in M4 (see [Roadmap](#roadmap)).
+**Status: Milestone 2.** On top of the M0 audio foundation it has the voice range finder, Drone mode (free singing, holds, scale degrees, slides), Pitch Match with adaptive difficulty, Octave Jump, Scale Ladder, and the shared feedback UI (live trace, cents needle, result card). The daily session, streaks and progress screens come in M4 (see [Roadmap](#roadmap)).
 
 Live app: **https://zantexee.github.io/pitch-trainer/** (once GitHub Pages is enabled; see [Deploy](#deploy)).
 
@@ -102,6 +102,21 @@ All logic that needs testing is plain TypeScript without React or Web Audio, so 
 - **"Hear my attempt"** uses `MediaRecorder` in memory only. The recording is discarded when the next attempt starts or the screen closes.
 - Every attempt is stored in IndexedDB (`attempts` table: timestamp, module, target, result, cents error, octave error, settle time, stability, difficulty) for the M4 progress screens.
 
+### Octave Jump and Scale Ladder (M2)
+
+- **Octave Jump** (`screens/OctaveJump.tsx`, `engine/octave.ts`): you hear a reference in register A, then sing the target in register B *without hearing it first*. The pitch class and the octave are scored separately ("Note ✓ · Octave ✗ (one octave low)"), and then the real target plays so your own ears confirm the result.
+  - Progression stages: one octave within a register → across registers (chest ↔ falsetto, low ↔ chest) → two octaves → notes other than C (naturals) → any note → octave plus an interval (hear C3, sing G4). Stages 0–2 use C only.
+  - Only pairs that fit your measured registers are generated. If your range can't support a stage, it falls back to an easier one and says so.
+  - Newly introduced pair types come up about 60% of the time. Register pairs with lower success are weighted up.
+  - Difficulty levers: stage, then tolerance (50/35/25¢). Success per register pair is shown on the screen and stored.
+- **Scale Ladder** (`screens/ScaleLadder.tsx`, `engine/ladder.ts`): an I–IV–V–I cadence (or i–iv–V–i) or a tonic drone sets the key, then you sing the steps.
+  - **Relaxed** mode: each step must lock (±35¢ for 0.4 s) before the next appears. Breathing between steps is fine, Skip step is available, and a step gives up after 8 s.
+  - **Timed** mode: one step per 1.3 s beat, scored on the back 70% of each beat.
+  - Kodály order: sol–mi → +la → +do → +re (pentatonic) → major up and down → natural minor → other modes (dorian, mixolydian, lydian, phrygian) → degree jumps (hear the tonic, sing 5, 3, 6…) → register transfer (major scale in chest voice, then the same scale an octave up in falsetto).
+  - The tonic is chosen so every step fits your range, dropping a stage if nothing fits. The stage advances when at least 80% of steps succeed on most recent ladders.
+  - Labels are note names by default, with toggles for degree numbers or solfège. With headphones the tonic drone keeps sounding under you. Without them the key is set and then the app goes silent, and ♪ Tonic replays it.
+  - Every step is stored as an attempt (degree + note) for the scale-degree accuracy grid in M4.
+
 ### Pitch detection
 
 - **Window:** 4096 samples when the target (or the current stable pitch) is below 110 Hz, otherwise 2048. With no target and no pitch yet it uses 4096, which is safe for low notes.
@@ -167,14 +182,16 @@ Run these on the phone and note the results in the table. The **Diagnostics** sc
 | 16 | Range finder: glides detect sensible chest / falsetto ends; low "bassy" step readable? | | | |
 | 17 | Drone without headphones: duck-and-check gaps are short and the checks match what you sang | | | |
 | 18 | Pitch Match: lock chime plays; "Hear my attempt" plays back your voice | | | |
+| 19 | Octave Jump: chest ↔ falsetto pairs score the octave correctly (no false "octave low/high") | | | |
+| 20 | Scale Ladder: cadence is audible on the speaker; relaxed steps advance on lock; timed mode keeps up | | | |
 
-Already checked in desktop Chromium (headless, fake mic fed a C3 tone): the audio gate, all timbres and the drone run without errors, and the mic reads C3 at 130.81 Hz with clarity 1.00. For M1, the range finder, Pitch Match (a C3 voice against a C4 target correctly reads "Right note, one octave low"), Drone free mode and the Hold / Slide challenges all run end to end with no console errors.
+Already checked in desktop Chromium (headless, fake mic fed a C3 tone): the audio gate, all timbres and the drone run without errors, and the mic reads C3 at 130.81 Hz with clarity 1.00. For M2, Octave Jump (a C3 voice against a C4 target reads "Note ✓ · Octave ✗ (one octave low)", then the target plays) and Scale Ladder (cadence, then timed steps, then summary) run with no console errors. For M1, the range finder, Pitch Match (a C3 voice against a C4 target correctly reads "Right note, one octave low"), Drone free mode and the Hold / Slide challenges all run end to end with no console errors.
 
 ## Roadmap
 
 - **M0 (done):** audio foundation, Diagnostics, tests, PWA + deploy.
 - **M1 (done):** voice range finder, Drone mode, Pitch Match, shared feedback UI.
-- **M2:** Octave Jump, Scale Ladder.
+- **M2 (done):** Octave Jump, Scale Ladder.
 - **M3:** ear-only drills.
 - **M4:** one-tap Start / Daily Mix, adaptive difficulty, weak-spot targeting, streaks, progress screens, surprises.
 - **M5:** polish, onboarding, vocal-health prompts, settings, export/import, accessibility.

@@ -719,3 +719,96 @@ select {
 .chart {
   width: 100%;
 }
+
+/* ---------- M2 ---------- */
+.btn.primary {
+  position: relative;
+  overflow: hidden;
+}
+.kv-row {
+  display: contents;
+}
+.oj-pair {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+.oj-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  opacity: 0.6;
+}
+.oj-note strong {
+  font-size: 2rem;
+}
+.oj-note.active {
+  opacity: 1;
+  border-color: var(--green);
+}
+.oj-arrow {
+  font-size: 1.8rem;
+  color: var(--muted);
+}
+.oj-verdict {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  font-size: 1.15rem;
+  font-weight: 650;
+}
+.oj-verdict .ok {
+  color: var(--green);
+}
+.oj-verdict .no {
+  color: var(--amber);
+}
+.ladder-wrap {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  align-items: start;
+}
+.ladder {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.rung {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  font-weight: 600;
+}
+.rung.cur {
+  border-color: var(--green);
+  background: #1d3b2e;
+}
+.rung.ok .rung-mark {
+  color: var(--green);
+}
+.rung.miss .rung-mark {
+  color: var(--muted);
+}
+.ladder-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.hold-bar.beat div {
+  background: var(--blue);
+  transition: none;
+}
