@@ -42,9 +42,30 @@ export class Mic {
     this.deviceId = deviceId;
     // iOS: must be play-and-record *before* getUserMedia, or output volume can drop.
     this.engine.setSessionType('play-and-record');
-    const requested: MediaTrackConstraints = { ...REQUESTED_CONSTRAINTS, channelCount: 1 };
-    if (deviceId) requested.deviceId = { exact: deviceId };
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: requested });
+    // Try the full request first, then progressively looser ones. Safari can
+    // throw OverconstrainedError for a stale saved deviceId (ids change
+    // between sessions) or for constraints the device can't satisfy.
+    const attempts: MediaTrackConstraints[] = [];
+    const base: MediaTrackConstraints = { ...REQUESTED_CONSTRAINTS };
+    if (deviceId) attempts.push({ ...base, deviceId: { ideal: deviceId } });
+    attempts.push({ ...base });
+    attempts.push({ echoCancellation: { ideal: false }, noiseSuppression: { ideal: false }, autoGainControl: { ideal: false } });
+    attempts.push({});
+    let stream: MediaStream | null = null;
+    let requested: MediaTrackConstraints = {};
+    let lastErr: unknown;
+    for (const c of attempts) {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: Object.keys(c).length ? c : true });
+        requested = c;
+        break;
+      } catch (e) {
+        lastErr = e;
+        // Permission denied or no mic: looser constraints won't help.
+        if (e instanceof DOMException && (e.name === 'NotAllowedError' || e.name === 'NotFoundError' || e.name === 'SecurityError')) throw e;
+      }
+    }
+    if (!stream) throw lastErr;
     this.stream = stream;
     const track = stream.getAudioTracks()[0];
     this.attach();

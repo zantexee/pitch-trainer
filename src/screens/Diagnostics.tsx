@@ -329,7 +329,7 @@ export function Diagnostics() {
           </thead>
           <tbody>
             {(['echoCancellation', 'noiseSuppression', 'autoGainControl', 'channelCount', 'sampleRate', 'sampleSize', 'latency'] as const).map((k) => {
-              const asked = k in REQUESTED_CONSTRAINTS ? String(REQUESTED_CONSTRAINTS[k as keyof typeof REQUESTED_CONSTRAINTS]) : k === 'channelCount' ? '1' : '—';
+              const asked = k in REQUESTED_CONSTRAINTS ? String(REQUESTED_CONSTRAINTS[k as keyof typeof REQUESTED_CONSTRAINTS]) : '—';
               const got = micInfo ? (micInfo.settings as Record<string, unknown>)[k] : undefined;
               const mismatch = micInfo && asked !== '—' && got !== undefined && String(got) !== asked;
               return (
