@@ -41,6 +41,7 @@ const INTRO_MS = 2200;
 // The very first round gets a quick title flash so sound starts within ~3 s of tapping Start.
 const FIRST_INTRO_MS = 600;
 const introMs = (i: number) => (i === 0 ? FIRST_INTRO_MS : INTRO_MS);
+const UNDO_MS = 5000;
 const WRAP_MAX_MS: Record<'ear' | 'sing', number> = { ear: 6000, sing: 12000 };
 
 const DESCRIBE: Record<RoundType, string> = {
@@ -195,7 +196,32 @@ export function Session() {
     if (complete) playChime(engine);
   }
 
+  // Ending never asks "are you sure?": it ends at once and offers Undo for a few seconds.
+  const undoSnap = useRef<{ results: RoundResult[]; index: number; remaining: number; cur: RoundResult | null } | null>(null);
+  const [undoable, setUndoable] = useState(false);
+  useEffect(() => {
+    if (!undoable) return;
+    const id = setTimeout(() => setUndoable(false), UNDO_MS);
+    return () => clearTimeout(id);
+  }, [undoable]);
+
+  function undoEnd() {
+    const snap = undoSnap.current;
+    if (!snap) return;
+    undoSnap.current = null;
+    setUndoable(false);
+    cur.current = snap.cur;
+    setResults(snap.results);
+    setIndex(snap.index);
+    setRemaining(snap.remaining);
+    setEnded(false);
+    setWrap(false);
+    setPhase(snap.cur ? 'round' : 'intro');
+  }
+
   function endEarly() {
+    undoSnap.current = { results, index, remaining, cur: cur.current ? { ...cur.current, bests: [...cur.current.bests] } : null };
+    setUndoable(true);
     const r = cur.current;
     cur.current = null;
     const final = r && r.n > 0 ? [...results, { ...r, seconds: plan.rounds[index].seconds - remaining }] : results;
@@ -243,26 +269,40 @@ export function Session() {
     if (status !== 'running' && phase === 'round') setPhase('paused');
   }, [status, phase]);
 
-  if (phase === 'summary') return <Summary plan={plan} results={results} ended={ended} startToday={startToday.current} practiceToday={practice.log[dateKey()] ?? 0} onOneMore={oneMore} />;
+  if (phase === 'summary')
+    return (
+      <>
+        <Summary plan={plan} results={results} ended={ended} startToday={startToday.current} practiceToday={practice.log[dateKey()] ?? 0} onOneMore={oneMore} />
+        {undoable && ended && (
+          <div className="toast bottom action" role="status">
+            <span>Session ended</span>
+            <button className="toast-btn" onClick={undoEnd}>
+              Undo
+            </button>
+          </div>
+        )}
+      </>
+    );
 
   const total = plan.rounds.length;
   const label = round ? (round.bonus ? `${BONUS_ICON} ${BONUS_LABEL[round.bonus]}` : ROUND_LABEL[round.type]) : '';
+  const showTimer = getSettings().showTimer;
   const mm = `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`;
 
   return (
     <main className="screen session">
       <header className="session-bar">
-        <button className="btn ghost small" onClick={endEarly} aria-label="End session">
+        <button className="btn ghost icon" onClick={endEarly} aria-label="End session">
           ✕
         </button>
         <div className="session-title">
           <strong>{label}</strong>
-          <span className="muted small">
+          <span className="sr-only">
             Round {index + 1} of {total}
           </span>
         </div>
         <span className={`session-time ${wrap ? 'wrap' : ''}`} aria-live="off">
-          {wrap ? 'last one' : mm}
+          {wrap ? 'last one' : showTimer ? mm : ''}
         </span>
       </header>
       <div className="session-progress" aria-hidden="true">
@@ -310,7 +350,7 @@ export function Session() {
 
       {phase === 'round' && (
         <div className="row session-controls">
-          <button className="btn" onClick={() => setPhase('paused')}>
+          <button className="btn" onClick={() => setPhase('paused')} aria-label="Pause">
             ❚❚ Pause
           </button>
           <button className="btn grow" onClick={() => finishRound(true)}>
@@ -318,7 +358,7 @@ export function Session() {
           </button>
         </div>
       )}
-      {todaySeconds(practice) >= MIN_SECONDS && startToday.current < MIN_SECONDS && phase === 'round' && <div className="toast">✓ Today counts</div>}
+      {todaySeconds(practice) >= MIN_SECONDS && startToday.current < MIN_SECONDS && phase === 'round' && <div className="toast bottom">✓ Today counts</div>}
     </main>
   );
 }

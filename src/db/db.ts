@@ -49,6 +49,8 @@ export interface Settings {
   bests: Record<string, number>;
   /** Daily Mix */
   sessionMinutes: number;
+  /** show the countdown during sessions (hidden by default to keep drills calm) */
+  showTimer: boolean;
   silentMode: boolean;
   streakMode: 'daily' | 'weekly';
   weeklyGoal: number;
@@ -102,6 +104,7 @@ export const DEFAULT_SETTINGS: Settings = {
   intervalStats: {},
   bests: {},
   sessionMinutes: 5,
+  showTimer: false,
   silentMode: false,
   streakMode: 'daily',
   weeklyGoal: 4,
