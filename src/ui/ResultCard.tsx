@@ -26,6 +26,9 @@ const HEADLINE: Record<AttemptScore['verdict'], string> = {
   unreadable: "Couldn't hear a steady note",
 };
 
+// Shape language matches the needle: ✓ filled, ◐ half, ○ hollow.
+const ICON: Record<AttemptScore['verdict'], string> = { locked: '', close: '◐ ', octave: '◐ ', off: '○ ', unreadable: '… ' };
+
 export function ResultCard({ score, samples, targetHz, toleranceCents, targetName, personalBest, onReplay, onHear, onNext, autoNextMs = 1500 }: Props) {
   const [auto, setAuto] = useState(true);
   const next = useRef(onNext);
@@ -46,7 +49,7 @@ export function ResultCard({ score, samples, targetHz, toleranceCents, targetNam
   return (
     <div className={`result ${score.verdict}`} onPointerDown={stop}>
       <div className="result-head">
-        <strong>{headline}</strong>
+        <strong>{ICON[score.verdict]}{headline}</strong>
         <span className="muted">{targetName}</span>
       </div>
       {personalBest && <div className="pb">★ {personalBest}</div>}
@@ -103,11 +106,11 @@ function MiniTrace({ samples, targetHz, toleranceCents }: { samples: PitchSample
   }
   return (
     <svg className="mini" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-label="Your pitch over the target">
-      <rect x={0} width={W} y={y(toleranceCents)} height={y(-toleranceCents) - y(toleranceCents)} fill="rgba(94,224,160,0.15)" />
-      <line x1={0} x2={W} y1={H / 2} y2={H / 2} stroke="rgba(255,255,255,0.6)" strokeDasharray="5 4" />
-      {maxAbs > 1100 && <line x1={0} x2={W} y1={y(-1200)} y2={y(-1200)} stroke="rgba(255,255,255,0.15)" />}
-      {maxAbs > 1100 && <line x1={0} x2={W} y1={y(1200)} y2={y(1200)} stroke="rgba(255,255,255,0.15)" />}
-      <path d={d} fill="none" stroke="#7cc4ff" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+      <rect x={0} width={W} y={y(toleranceCents)} height={y(-toleranceCents) - y(toleranceCents)} fill="var(--band-in)" />
+      <line x1={0} x2={W} y1={H / 2} y2={H / 2} stroke="var(--target-line)" strokeDasharray="5 4" />
+      {maxAbs > 1100 && <line x1={0} x2={W} y1={y(-1200)} y2={y(-1200)} stroke="var(--grid-strong)" />}
+      {maxAbs > 1100 && <line x1={0} x2={W} y1={y(1200)} y2={y(1200)} stroke="var(--grid-strong)" />}
+      <path d={d} fill="none" stroke="var(--blue)" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

@@ -148,15 +148,15 @@ export function ThresholdChart({ points }: { points: Point[] }) {
       <svg viewBox={`0 0 ${W} ${H}`} className="chart" aria-label="Threshold over time, lower is better">
         {[2, 5, 10, 25, 50, 100].map((c) => (
           <g key={c}>
-            <line x1={26} x2={W} y1={ly(c)} y2={ly(c)} stroke="rgba(255,255,255,0.07)" />
-            <text x={0} y={ly(c) + 3} fontSize={9} fill="#9aa3b2">
+            <line x1={26} x2={W} y1={ly(c)} y2={ly(c)} stroke="var(--grid)" />
+            <text x={0} y={ly(c) + 3} fontSize={9} fill="var(--muted)">
               {c}¢
             </text>
           </g>
         ))}
-        <path d={d} fill="none" stroke="#7cc4ff" strokeWidth={2} />
+        <path d={d} fill="none" stroke="var(--blue)" strokeWidth={2} />
         {pts.map((p, i) => (
-          <circle key={i} cx={x(i)} cy={ly(p.threshold)} r={2.5} fill="#7cc4ff" />
+          <circle key={i} cx={x(i)} cy={ly(p.threshold)} r={2.5} fill="var(--blue)" />
         ))}
       </svg>
       <p className="muted small">Lower is better. Each point is a session estimate.</p>
