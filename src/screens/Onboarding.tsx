@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { engine } from '../audio';
 import { playNote } from '../audio/synth';
 import { go } from '../lib/router';
-import { getSettings, updateSettings, useSettings } from '../lib/settings';
+import { getSettings, updateSettings } from '../lib/settings';
 import { requestPersistence } from '../db/db';
 
-// First run, about 30 seconds: turn sound on, check it's audible (silent
-// switch), headphones or speaker, one voice-care tip, then the range finder.
+// First run, two screens: turn sound on, then check it's audible (silent
+// switch) and pick speaker or headphones. The range finder is offered on Home.
 
-type Step = 'welcome' | 'sound' | 'listen' | 'care' | 'range';
-const ORDER: Step[] = ['welcome', 'sound', 'listen', 'care', 'range'];
+type Step = 'welcome' | 'setup';
+const ORDER: Step[] = ['welcome', 'setup'];
 
 function tone() {
   const a4 = getSettings().a4;
@@ -18,13 +18,13 @@ function tone() {
 }
 
 export function Onboarding() {
-  const s = useSettings();
   const [step, setStep] = useState<Step>('welcome');
   const [noSound, setNoSound] = useState(false);
 
-  const finish = (toRange: boolean) => {
+  // Practice can start straight away with a default range; Home offers the range finder.
+  const finish = () => {
     updateSettings({ onboarded: true, healthTipShown: true });
-    go(toRange ? '/range' : '/');
+    go('/');
   };
 
   return (
@@ -49,7 +49,7 @@ export function Onboarding() {
               await engine.start(); // inside the tap, as iOS requires
               void requestPersistence();
               tone();
-              setStep('sound');
+              setStep('setup');
             }}
           >
             Let's go
@@ -57,73 +57,27 @@ export function Onboarding() {
         </section>
       )}
 
-      {step === 'sound' && (
+      {step === 'setup' && (
         <section className="card ob">
-          <h2>Can you hear the chord?</h2>
+          <h2>Hear the chord?</h2>
           {noSound && (
             <p className="hint">
-              Check the <strong>silent switch</strong> on the side of the iPhone (orange showing means silent) and turn the volume up. Then play it again.
+              Check the <strong>silent switch</strong> on the side (orange showing means silent) and turn the volume up.
             </p>
           )}
+          <button className="btn" onClick={() => (setNoSound(true), tone())}>
+            🔊 {noSound ? 'Play again' : "No, play again"}
+          </button>
+          <h2>Then pick how you listen</h2>
           <div className="stack">
-            <button className="btn primary big" onClick={() => setStep('listen')}>
-              Yes
-            </button>
-            <button className="btn big" onClick={() => (setNoSound(true), tone())}>
-              {noSound ? 'Play again' : 'No'}
-            </button>
-            {noSound && (
-              <button className="btn ghost" onClick={() => setStep('listen')}>
-                Continue anyway
-              </button>
-            )}
-          </div>
-        </section>
-      )}
-
-      {step === 'listen' && (
-        <section className="card ob">
-          <h2>How are you listening?</h2>
-          <div className="stack">
-            <button className="btn big" onClick={() => (updateSettings({ headphones: false }), setStep('care'))}>
+            <button className="btn primary big" onClick={() => (updateSettings({ headphones: false }), finish())}>
               Phone speaker
             </button>
-            <button className="btn big" onClick={() => (updateSettings({ headphones: true }), setStep('care'))}>
-              Wired headphones
-            </button>
-            <button className="btn big" onClick={() => (updateSettings({ headphones: true }), setStep('care'))}>
-              AirPods / Bluetooth
+            <button className="btn primary big" onClick={() => (updateSettings({ headphones: true }), finish())}>
+              Headphones / AirPods
             </button>
           </div>
-          <p className="muted small">The speaker works for everything: the app plays, then listens. You can change this in Settings. AirPods may sound worse while the mic is on.</p>
-        </section>
-      )}
-
-      {step === 'care' && (
-        <section className="card ob">
-          <h2>Look after your voice</h2>
-          <p className="hint">Stop if it hurts or you get hoarse. Singing should feel easy.</p>
-          <label className="toggle">
-            <input type="checkbox" checked={s.warmup} onChange={(e) => updateSettings({ warmup: e.target.checked })} />
-            <span>Start singing sessions with a 60-second warm-up (lip trills or "oo" through a straw)</span>
-          </label>
-          <p className="muted small">After {s.voiceBreakMin || 20} minutes of singing in a day, the app suggests a break.</p>
-          <button className="btn primary big" onClick={() => setStep('range')}>
-            Next
-          </button>
-        </section>
-      )}
-
-      {step === 'range' && (
-        <section className="card ob">
-          <h2>Last step: your range</h2>
-          <p>Glide from your lowest to your highest note, so every exercise fits your voice. About a minute.</p>
-          <button className="btn-huge" onClick={() => finish(true)}>
-            Find my range
-          </button>
-          <button className="btn ghost" onClick={() => finish(false)}>
-            Later
-          </button>
+          <p className="muted small">Stop if singing ever hurts. You can change everything in Settings.</p>
         </section>
       )}
     </main>
