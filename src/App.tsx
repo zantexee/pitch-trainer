@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { useLanguage } from './i18n';
 import { useRoute } from './lib/router';
 import { Home } from './screens/Home';
 import { Diagnostics } from './screens/Diagnostics';
@@ -45,6 +46,7 @@ const SCREENS: Record<string, () => ReactNode> = {
 
 export function App() {
   const route = useRoute();
+  useLanguage();
   const s = useSettings();
   const screen = SCREENS[route];
   // practice time counts on every training screen (not the sound lab)

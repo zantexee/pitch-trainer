@@ -72,6 +72,8 @@ export interface Settings {
   scaleNoteSound: 'tone' | 'drone';
   scaleRootDrone: boolean;
   scaleSpeed: 'slow' | 'medium' | 'fast';
+  /** UI language; auto follows the phone */
+  lang: 'auto' | 'en' | 'ro';
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -120,6 +122,7 @@ export const DEFAULT_SETTINGS: Settings = {
   scaleNoteSound: 'tone',
   scaleRootDrone: false,
   scaleSpeed: 'medium',
+  lang: 'auto',
 };
 
 interface KV {

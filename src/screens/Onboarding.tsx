@@ -4,6 +4,7 @@ import { playNote } from '../audio/synth';
 import { go } from '../lib/router';
 import { getSettings, updateSettings } from '../lib/settings';
 import { requestPersistence } from '../db/db';
+import { LanguagePicker } from '../i18n';
 
 // First run, two screens: turn sound on, then check it's audible (silent
 // switch) and pick speaker or headphones. The range finder is offered on Home.
@@ -38,6 +39,7 @@ export function Onboarding() {
       {step === 'welcome' && (
         <section className="card ob">
           <h1>Pitch Trainer</h1>
+          <LanguagePicker />
           <ul className="ob-list">
             <li>Short, varied practice to sing in tune: 2 to 10 minutes a day.</li>
             <li>Instant feedback on every note.</li>

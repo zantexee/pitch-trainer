@@ -180,6 +180,10 @@ Silence tests: digital silence, quiet room noise after calibration, and loud whi
 - **Ear-drill rounds**: pick 10, 20, 50 or ∞ trials. The summary shows %, best run, where the problems were (by degree, interval, direction, size, register…), the most common mix-ups ("heard 3 as 5") and a breakdown bar chart.
 - **Progress** screen: streak card with mode switch, a 16-week calendar heatmap (freezes and repairs marked), this week vs. last, Pitch Match accuracy per note, scale-degree, interval and register-pair grids, the Higher-or-lower threshold chart, weekly median time-to-lock, personal bests and range over time. Home shows a compact weekly card ("Most improved: …").
 
+### Languages (English / Română)
+
+*Settings → Language* (and the first intro screen): **Automatic** follows the phone's language, or pick **English** or **Română**. The app is written in English; `src/i18n/translator.ts` swaps every visible text (and `aria-label` / `title`) for its translation as React renders it, using English strings as keys (`src/i18n/ro.ts`, with `{0}` placeholders and Romanian plurals). React's split text pieces are joined into one sentence before matching, a loose pattern never half-translates a sentence, and anything without a translation simply stays in English. Note names stay in scientific pitch notation (C4); solfège *ti* becomes *si*. To add a string, add one line to `ro.ts`.
+
 ### Scales menu
 
 **Scales** on Home (`screens/Scales.tsx`, logic in `engine/scales.ts`): all 12 keys × major, natural minor, harmonic minor and melodic minor (raised 6th and 7th going up, natural coming down). The scale is placed where it best fits your chest range (falsetto next; never down into the experimental low voice), with − / + octave buttons.

@@ -5,6 +5,7 @@ import { updateSettings, useSettings } from '../lib/settings';
 import { A4_MAX, A4_MIN } from '../lib/notes';
 import { describeBackup, exportBackup, parseBackup, resetAll, restoreBackup, type Backup } from '../lib/backup';
 import { requestPersistence } from '../db/db';
+import { LanguagePicker } from '../i18n';
 
 const MINUTES = [2, 5, 10];
 const BREAKS = [0, 15, 20, 30];
@@ -70,6 +71,11 @@ export function Settings() {
         </button>
         <h2>Settings</h2>
       </header>
+
+      <section className="card">
+        <h3>Language</h3>
+        <LanguagePicker />
+      </section>
 
       <section className="card">
         <h3>Sound</h3>
