@@ -124,6 +124,10 @@ export function Settings() {
           <span>Silent sessions (ear drills only)</span>
         </label>
         <label className="toggle">
+          <input type="checkbox" checked={s.showTimer} onChange={(e) => updateSettings({ showTimer: e.target.checked })} />
+          <span>Show the timer during sessions</span>
+        </label>
+        <label className="toggle">
           <input type="checkbox" checked={s.stretch} onChange={(e) => updateSettings({ stretch: e.target.checked })} />
           <span>Stretch: allow notes up to 2 semitones beyond my range</span>
         </label>

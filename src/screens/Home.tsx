@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { engine } from '../audio';
 import { go } from '../lib/router';
 import { updateSettings, useSettings } from '../lib/settings';
-import { midiToName } from '../lib/notes';
 import { streakNow, usePractice } from '../lib/practice';
 import { weeklySummary, MODULE_LABEL, type WeeklySummary } from '../lib/weekly';
 import { dateKey } from '../engine/dates';
@@ -11,6 +10,20 @@ import { THEME_LABEL, themeFor } from '../engine/session';
 import { resumeSession, startSession } from './Session';
 
 const MINUTES = [2, 5, 10];
+
+// Three big doors on Home; everything else lives under "More".
+const TILES = [
+  { path: '/scales', icon: '🎼', label: 'Scales & Drone' },
+  { path: '/ear', icon: '👂', label: 'Ear training' },
+  { path: '/match', icon: '🎯', label: 'Pitch Match' },
+];
+const MORE = [
+  { path: '/octave', label: 'Octave Jump', sub: 'Same note, another register' },
+  { path: '/ladder', label: 'Scale Ladder', sub: 'Sing up and down the scale' },
+  { path: '/drone', label: 'Drone', sub: 'Holds, intervals, slides' },
+  { path: '/progress', label: 'Progress', sub: 'Streak, calendar, weak spots' },
+  { path: '/range', label: 'Voice range', sub: 'Re-test monthly' },
+];
 
 export function Home() {
   const s = useSettings();
@@ -22,12 +35,21 @@ export function Home() {
   const theme = themeFor(today);
   const saved = s.activeSession?.date === today ? s.activeSession : null;
   const left = saved ? saved.plan.rounds.length - saved.index : 0;
+  const resumable = !!saved && left > 0;
+  const [more, setMore] = useState(false);
 
   useEffect(() => {
     void weeklySummary(practice.log).then(setWeek);
     // only on visit; the log ticks every few seconds while training
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!more) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMore(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [more]);
 
   const start = async (resume: boolean) => {
     await engine.start(); // inside the tap: iOS needs this
@@ -50,11 +72,6 @@ export function Home() {
             ⚙︎
           </button>
         </div>
-        {s.range && (
-          <p className="muted small">
-            Chest {midiToName(s.range.chest.lo)}–{midiToName(s.range.chest.hi)} · Falsetto {midiToName(s.range.falsetto.lo)}–{midiToName(s.range.falsetto.hi)}
-          </p>
-        )}
       </header>
       {needsRange ? (
         <>
@@ -66,12 +83,21 @@ export function Home() {
       ) : (
         <>
           <div className="theme-chip center-self">{THEME_LABEL[theme]}</div>
-          <button className="btn-huge" onClick={() => void start(false)}>
-            Start
-            <span className="btn-sub">
-              {s.sessionMinutes} min{s.silentMode ? ' · silent' : ''}
-            </span>
-          </button>
+          {resumable ? (
+            <button className="btn-huge" onClick={() => void start(true)}>
+              Continue
+              <span className="btn-sub">
+                {left} round{left === 1 ? '' : 's'} left
+              </span>
+            </button>
+          ) : (
+            <button className="btn-huge" onClick={() => void start(false)}>
+              Start
+              <span className="btn-sub">
+                {s.sessionMinutes} min{s.silentMode ? ' · silent' : ''}
+              </span>
+            </button>
+          )}
           <div className="chips center-chips">
             {MINUTES.map((m) => (
               <button key={m} className={`chip ${s.sessionMinutes === m ? 'on' : ''}`} aria-pressed={s.sessionMinutes === m} onClick={() => updateSettings({ sessionMinutes: m })}>
@@ -82,9 +108,9 @@ export function Home() {
               🤫 Silent
             </button>
           </div>
-          {saved && left > 0 && (
-            <button className="btn" onClick={() => void start(true)}>
-              Continue today's session ({left} round{left === 1 ? '' : 's'} left)
+          {resumable && (
+            <button className="btn ghost" onClick={() => void start(false)}>
+              Start a new {s.sessionMinutes} min session instead
             </button>
           )}
           {streak.repair && <p className="repair">{repairText(streak.repair, Date.now())}</p>}
@@ -93,6 +119,19 @@ export function Home() {
           )}
         </>
       )}
+      <nav className="tiles" aria-label="Practice">
+        {TILES.map((t) => (
+          <button key={t.path} className="tile" onClick={() => go(t.path)}>
+            <span className="tile-icon" aria-hidden="true">
+              {t.icon}
+            </span>
+            <strong>{t.label}</strong>
+          </button>
+        ))}
+      </nav>
+      <button className="btn ghost more-btn" onClick={() => setMore(true)} aria-haspopup="dialog">
+        More exercises ›
+      </button>
       {week && (week.thisWeek.minutes > 0 || week.lastWeek.minutes > 0) && (
         <button className="card week-card" onClick={() => go('/progress')}>
           <div className="week-row">
@@ -124,44 +163,26 @@ export function Home() {
           )}
         </button>
       )}
-      <nav className="modes">
-        <button className="mode" onClick={() => go('/match')}>
-          <strong>Pitch Match</strong>
-          <span className="muted small">Hear a note, sing it back</span>
-        </button>
-        <button className="mode" onClick={() => go('/octave')}>
-          <strong>Octave Jump</strong>
-          <span className="muted small">Same note, another register</span>
-        </button>
-        <button className="mode" onClick={() => go('/ladder')}>
-          <strong>Scale Ladder</strong>
-          <span className="muted small">Sing up and down the scale</span>
-        </button>
-        <button className="mode" onClick={() => go('/scales')}>
-          <strong>Scales</strong>
-          <span className="muted small">Every major and minor scale: play or sing</span>
-        </button>
-        <button className="mode" onClick={() => go('/ear')}>
-          <strong>Ear training</strong>
-          <span className="muted small">Silent drills, no singing</span>
-        </button>
-        <button className="mode" onClick={() => go('/drone')}>
-          <strong>Drone</strong>
-          <span className="muted small">Sustained notes, holds, intervals, slides</span>
-        </button>
-        <button className="mode" onClick={() => go('/progress')}>
-          <strong>Progress</strong>
-          <span className="muted small">Streak, calendar, weak spots</span>
-        </button>
-        <button className="mode" onClick={() => go('/range')}>
-          <strong>Voice range</strong>
-          <span className="muted small">{needsRange ? 'Not measured yet' : 'Re-test monthly'}</span>
-        </button>
-        <button className="mode" onClick={() => go('/settings')}>
-          <strong>Settings</strong>
-          <span className="muted small">Headphones, voice care, backup</span>
-        </button>
-      </nav>
+      {more && (
+        <div className="sheet-backdrop" onClick={() => setMore(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label="More exercises" onClick={(e) => e.stopPropagation()}>
+            <div className="sheet-head">
+              <strong>More</strong>
+              <button className="btn ghost icon" onClick={() => setMore(false)} aria-label="Close">
+                ✕
+              </button>
+            </div>
+            <nav className="sheet-list">
+              {MORE.map((m) => (
+                <button key={m.path} className="mode row-mode" onClick={() => go(m.path)}>
+                  <strong>{m.label}</strong>
+                  <span className="muted small">{m.path === '/range' && needsRange ? 'Not measured yet' : m.sub}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
       <footer className="muted small center">
         v{__APP_VERSION__} · {__BUILD_TIME__}
       </footer>
