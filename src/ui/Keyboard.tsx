@@ -17,6 +17,8 @@ interface Props {
 }
 
 const BLACK = new Set([1, 3, 6, 8, 10]);
+// Letter badges so registers can be told apart without colour.
+export const REGISTER_LETTER: Record<Register, string> = { low: 'L', chest: 'C', falsetto: 'F' };
 export const REGISTER_COLORS: Record<Register, string> = { low: 'var(--reg-low)', chest: 'var(--reg-chest)', falsetto: 'var(--reg-falsetto)' };
 
 export function Keyboard({ lo, hi, range, selected, allowed, onPick, colors }: Props) {

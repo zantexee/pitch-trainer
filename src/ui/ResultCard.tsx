@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { AttemptScore, PitchSample } from '../pitch/scoring';
 import { cents } from '../lib/notes';
 
-// After each attempt: your trace over the target, the numbers, and the
-// Replay / Hear my attempt / Next buttons. Auto-advances unless you tap.
+// After each attempt: verdict, your trace over the target and Next. The
+// numbers and Replay / Hear my attempt sit behind "Details" to keep it calm.
+// Auto-advances unless you tap.
 
 interface Props {
   score: AttemptScore;
@@ -54,36 +55,41 @@ export function ResultCard({ score, samples, targetHz, toleranceCents, targetNam
       </div>
       {personalBest && <div className="pb">★ {personalBest}</div>}
       <MiniTrace samples={samples} targetHz={targetHz} toleranceCents={toleranceCents} />
-      <dl className="stats">
-        <div>
-          <dt>Accuracy</dt>
-          <dd>{score.accuracy != null ? `±${Math.round(score.verdict === 'octave' ? score.pcAccuracy! : score.accuracy)}¢` : '—'}</dd>
-        </div>
-        <div>
-          <dt>Stability</dt>
-          <dd>{score.stability != null ? `${Math.round(score.stability)}¢` : '—'}</dd>
-        </div>
-        <div>
-          <dt>Settle</dt>
-          <dd>{score.settleMs != null ? `${(score.settleMs / 1000).toFixed(2)} s` : '—'}</dd>
-        </div>
-      </dl>
       <div className="row">
-        {onReplay && (
-          <button className="btn" onClick={() => (stop(), onReplay())}>
-            ▶ Target
-          </button>
-        )}
-        {onHear && (
-          <button className="btn" onClick={() => (stop(), onHear())}>
-            🎧 My attempt
-          </button>
-        )}
         <button className="btn primary grow" onClick={() => next.current()}>
           Next
           {auto && <span className="auto-bar" style={{ animationDuration: `${autoNextMs}ms` }} />}
         </button>
       </div>
+      <details className="result-details" onToggle={stop}>
+        <summary>Details</summary>
+        <dl className="stats">
+          <div>
+            <dt>Accuracy</dt>
+            <dd>{score.accuracy != null ? `±${Math.round(score.verdict === 'octave' ? score.pcAccuracy! : score.accuracy)}¢` : '—'}</dd>
+          </div>
+          <div>
+            <dt>Stability</dt>
+            <dd>{score.stability != null ? `${Math.round(score.stability)}¢` : '—'}</dd>
+          </div>
+          <div>
+            <dt>Settle</dt>
+            <dd>{score.settleMs != null ? `${(score.settleMs / 1000).toFixed(2)} s` : '—'}</dd>
+          </div>
+        </dl>
+        <div className="row">
+          {onReplay && (
+            <button className="btn" onClick={() => (stop(), onReplay())}>
+              ▶ Target
+            </button>
+          )}
+          {onHear && (
+            <button className="btn" onClick={() => (stop(), onHear())}>
+              🎧 My attempt
+            </button>
+          )}
+        </div>
+      </details>
     </div>
   );
 }

@@ -73,52 +73,46 @@ export function Home() {
           </button>
         </div>
       </header>
-      {needsRange ? (
-        <>
-          <button className="btn-huge" onClick={() => go('/range')}>
-            Find my range
+      <>
+        <div className="theme-chip center-self">{THEME_LABEL[theme]}</div>
+        {resumable ? (
+          <button className="btn-huge" onClick={() => void start(true)}>
+            Continue
+            <span className="btn-sub">
+              {left} round{left === 1 ? '' : 's'} left
+            </span>
           </button>
-          <p className="muted small center">About a minute. Every exercise uses it.</p>
-        </>
-      ) : (
-        <>
-          <div className="theme-chip center-self">{THEME_LABEL[theme]}</div>
-          {resumable ? (
-            <button className="btn-huge" onClick={() => void start(true)}>
-              Continue
-              <span className="btn-sub">
-                {left} round{left === 1 ? '' : 's'} left
-              </span>
+        ) : (
+          <button className="btn-huge" onClick={() => void start(false)}>
+            Start
+            <span className="btn-sub">
+              {s.sessionMinutes} min{s.silentMode ? ' · silent' : ''}
+            </span>
+          </button>
+        )}
+        <div className="chips center-chips">
+          {MINUTES.map((m) => (
+            <button key={m} className={`chip ${s.sessionMinutes === m ? 'on' : ''}`} aria-pressed={s.sessionMinutes === m} onClick={() => updateSettings({ sessionMinutes: m })}>
+              {m} min
             </button>
-          ) : (
-            <button className="btn-huge" onClick={() => void start(false)}>
-              Start
-              <span className="btn-sub">
-                {s.sessionMinutes} min{s.silentMode ? ' · silent' : ''}
-              </span>
-            </button>
-          )}
-          <div className="chips center-chips">
-            {MINUTES.map((m) => (
-              <button key={m} className={`chip ${s.sessionMinutes === m ? 'on' : ''}`} aria-pressed={s.sessionMinutes === m} onClick={() => updateSettings({ sessionMinutes: m })}>
-                {m} min
-              </button>
-            ))}
-            <button className={`chip ${s.silentMode ? 'on' : ''}`} aria-pressed={s.silentMode} onClick={() => updateSettings({ silentMode: !s.silentMode })} title="Ear drills only, no singing">
-              🤫 Silent
-            </button>
-          </div>
-          {resumable && (
-            <button className="btn ghost" onClick={() => void start(false)}>
-              Start a new {s.sessionMinutes} min session instead
-            </button>
-          )}
-          {streak.repair && <p className="repair">{repairText(streak.repair, Date.now())}</p>}
-          {streak.mode === 'daily' && !streak.todayDone && streak.current > 0 && !streak.repair && (
-            <p className="muted small center">2 minutes today keeps your {streak.current}-day streak.</p>
-          )}
-        </>
-      )}
+          ))}
+          <button className={`chip ${s.silentMode ? 'on' : ''}`} aria-pressed={s.silentMode} onClick={() => updateSettings({ silentMode: !s.silentMode })} title="Ear drills only, no singing">
+            🤫 Silent
+          </button>
+        </div>
+        {resumable && (
+          <button className="btn ghost" onClick={() => void start(false)}>
+            Start a new {s.sessionMinutes} min session instead
+          </button>
+        )}
+        {needsRange && (
+          <button className="btn ghost" onClick={() => go('/range')}>
+            🎤 Find my range · 1 min
+          </button>
+        )}
+        {streak.repair && <p className="repair">{repairText(streak.repair, Date.now())}</p>}
+        {streak.mode === 'daily' && !streak.todayDone && streak.current > 0 && !streak.repair && <p className="muted small center">2 minutes today keeps your {streak.current}-day streak.</p>}
+      </>
       <nav className="tiles" aria-label="Practice">
         {TILES.map((t) => (
           <button key={t.path} className="tile" onClick={() => go(t.path)}>
@@ -142,7 +136,8 @@ export function Home() {
           </div>
           <div className="week-stats">
             <span>
-              <strong>{week.thisWeek.days}</strong> day{week.thisWeek.days === 1 ? '' : 's'}
+              <strong>{week.thisWeek.days}</strong> day
+              {week.thisWeek.days === 1 ? '' : 's'}
             </span>
             <span>
               <strong>{week.thisWeek.minutes}</strong> min
@@ -150,9 +145,7 @@ export function Home() {
             {week.thisWeek.pct != null && (
               <span>
                 <strong>{week.thisWeek.pct}%</strong> right
-                {week.lastWeek.pct != null && week.thisWeek.pct !== week.lastWeek.pct && (
-                  <span className={week.thisWeek.pct > week.lastWeek.pct ? 'up' : 'down'}> {week.thisWeek.pct > week.lastWeek.pct ? '↑' : '↓'}{Math.abs(week.thisWeek.pct - week.lastWeek.pct)}</span>
-                )}
+                {week.lastWeek.pct != null && week.thisWeek.pct > week.lastWeek.pct && <span className="up"> ↑{week.thisWeek.pct - week.lastWeek.pct}</span>}
               </span>
             )}
           </div>

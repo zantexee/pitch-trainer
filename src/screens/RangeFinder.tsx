@@ -8,7 +8,7 @@ import { addRangeRecord, loadRangeHistory, type RangeRecord } from '../db/db';
 import { useSingingMic } from '../modules/useSingingMic';
 import { MicGate } from '../ui/MicGate';
 import { PitchTrace } from '../ui/PitchTrace';
-import { Keyboard, REGISTER_COLORS } from '../ui/Keyboard';
+import { Keyboard, REGISTER_COLORS, REGISTER_LETTER } from '../ui/Keyboard';
 
 const STEPS: { reg: Register; title: string; text: string; experimental?: boolean }[] = [
   { reg: 'chest', title: 'Normal voice', text: 'Glide on "oo" from your lowest to your highest note. Pause for a second at the bottom and at the top.' },
@@ -107,7 +107,9 @@ export function RangeFinder() {
           {(['chest', 'falsetto', 'low'] as Register[]).map((reg) => (
             <div key={reg} className="range-row">
               <span className="range-name">
-                <i style={{ background: REGISTER_COLORS[reg] }} />
+                <i style={{ background: REGISTER_COLORS[reg] }} aria-hidden="true">
+                  {REGISTER_LETTER[reg]}
+                </i>
                 {REGISTER_LABEL[reg]}
                 {(found[reg] == null || found[reg]!.hi - found[reg]!.lo < 2) && <span className="muted small"> (not detected clearly, so the old value is kept)</span>}
               </span>
