@@ -19,16 +19,30 @@ interface Pt {
   midi: number | null;
 }
 
-const COLORS = {
-  grid: 'rgba(255,255,255,0.06)',
-  gridC: 'rgba(255,255,255,0.16)',
-  label: 'rgba(255,255,255,0.45)',
-  target: 'rgba(255,255,255,0.7)',
-  band: 'rgba(94,224,160,0.13)',
-  in: '#5ee0a0',
-  close: '#f2b84b',
-  off: '#9aa3b2',
-  free: '#7cc4ff',
+// Canvas can't use CSS variables directly, so read the colour tokens once.
+function readColors() {
+  const cs = getComputedStyle(document.documentElement);
+  const v = (name: string, fallback: string) => cs.getPropertyValue(name).trim() || fallback;
+  return {
+    grid: v('--grid', 'rgba(255,255,255,0.07)'),
+    gridC: v('--grid-strong', 'rgba(255,255,255,0.16)'),
+    label: v('--label', 'rgba(255,255,255,0.45)'),
+    target: v('--target-line', 'rgba(255,255,255,0.7)'),
+    band: v('--band-in', 'rgba(94,224,160,0.2)'),
+    in: v('--green', '#5ee0a0'),
+    close: v('--amber', '#d99a2b'),
+    off: v('--muted', '#9aa3b2'),
+    free: v('--blue', '#7cc4ff'),
+  };
+}
+
+// Line style per zone, so the trace reads without colour: thick solid when
+// in tune, medium solid when close, thin dashed when off.
+const STYLE = {
+  in: { w: 4.5, dash: [] as number[] },
+  close: { w: 3, dash: [] as number[] },
+  off: { w: 2, dash: [3, 5] },
+  free: { w: 3, dash: [] as number[] },
 };
 
 export function PitchTrace({ a4, targetHz = null, toleranceCents = 50, seconds = 4, height = 200 }: Props) {
@@ -45,6 +59,7 @@ export function PitchTrace({ a4, targetHz = null, toleranceCents = 50, seconds =
       const cutoff = f.t - p.seconds * 1000 - 200;
       while (pts.current.length && pts.current[0].t < cutoff) pts.current.shift();
     });
+    const COLORS = readColors();
     let raf = 0;
     const draw = () => {
       raf = requestAnimationFrame(draw);
@@ -131,9 +146,10 @@ export function PitchTrace({ a4, targetHz = null, toleranceCents = 50, seconds =
           continue;
         }
         if (prev && prev.midi != null && q.t - prev.t < 120) {
-          let col = COLORS.free;
-          if (targetMidi != null) col = COLORS[zoneFor((q.midi - targetMidi) * 100, p.toleranceCents)];
-          g.strokeStyle = col;
+          const zone = targetMidi != null ? zoneFor((q.midi - targetMidi) * 100, p.toleranceCents) : 'free';
+          g.strokeStyle = COLORS[zone];
+          g.lineWidth = STYLE[zone].w;
+          g.setLineDash(STYLE[zone].dash);
           g.beginPath();
           g.moveTo(x(prev.t), y(prev.midi));
           g.lineTo(x(q.t), y(q.midi));
@@ -141,6 +157,7 @@ export function PitchTrace({ a4, targetHz = null, toleranceCents = 50, seconds =
         }
         prev = q;
       }
+      g.setLineDash([]);
     };
     raf = requestAnimationFrame(draw);
     return () => {

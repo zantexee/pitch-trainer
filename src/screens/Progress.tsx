@@ -268,17 +268,17 @@ function SettleTrend({ attempts }: { attempts: Attempt[] }) {
       <svg viewBox={`0 0 ${W} ${H}`} className="chart" aria-label="Median settle time per week, lower is better">
         {[0.25, 0.5, 0.75].map((f) => (
           <g key={f}>
-            <line x1={28} x2={W} y1={y(max * f)} y2={y(max * f)} stroke="rgba(255,255,255,0.07)" />
-            <text x={0} y={y(max * f) + 3} fontSize={9} fill="#9aa3b2">
+            <line x1={28} x2={W} y1={y(max * f)} y2={y(max * f)} stroke="var(--grid)" />
+            <text x={0} y={y(max * f) + 3} fontSize={9} fill="var(--muted)">
               {((max * f) / 1000).toFixed(1)}s
             </text>
           </g>
         ))}
-        <path d={weeks.map((w, i) => `${i ? 'L' : 'M'}${x(i)},${y(w.ms)}`).join('')} fill="none" stroke="#9be89b" strokeWidth={2} />
+        <path d={weeks.map((w, i) => `${i ? 'L' : 'M'}${x(i)},${y(w.ms)}`).join('')} fill="none" stroke="var(--chart)" strokeWidth={2} />
         {weeks.map((w, i) => (
           <g key={w.ws}>
-            <circle cx={x(i)} cy={y(w.ms)} r={2.5} fill="#9be89b" />
-            <text x={x(i)} y={H - 2} fontSize={8} fill="#9aa3b2" textAnchor={i === weeks.length - 1 ? 'end' : i === 0 ? 'start' : 'middle'}>
+            <circle cx={x(i)} cy={y(w.ms)} r={2.5} fill="var(--chart)" />
+            <text x={x(i)} y={H - 2} fontSize={8} fill="var(--muted)" textAnchor={i === weeks.length - 1 ? 'end' : i === 0 ? 'start' : 'middle'}>
               {new Date(startOfDayMs(w.ws)).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             </text>
           </g>

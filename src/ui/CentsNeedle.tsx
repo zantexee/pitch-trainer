@@ -1,8 +1,9 @@
 import type { AttemptLive } from '../pitch/attempt';
 
-// Big direction readout: a horizontal meter (flat ← → sharp) with the
-// tolerance zone in the middle, plus an arrow word. Direction is shown by
-// position and by the arrow, not only by colour.
+// Big direction readout: a full-width meter (flat ← → sharp) with the
+// tolerance zone in the middle, plus an arrow word. State is shown by
+// position, marker shape (hollow / half / filled ✓) and the word, never by
+// colour alone. A ring around the marker fills while you hold the note.
 
 interface Props {
   state: AttemptLive | null;
@@ -52,17 +53,19 @@ export function CentsNeedle({ state, toleranceCents, holdMs, hidden }: Props) {
         <div className="needle-zone2" style={{ left: `${50 - 2 * zoneW}%`, width: `${4 * zoneW}%` }} />
         <div className="needle-zone" style={{ left: `${50 - zoneW}%`, width: `${2 * zoneW}%` }} />
         <div className="needle-center" />
-        {shown != null && <div className="needle-dot" style={{ left: `${pos}%` }} />}
-        <span className="needle-end left">flat</span>
-        <span className="needle-end right">sharp</span>
+        {shown != null && (
+          <div className="needle-dot" style={{ left: `calc(18px + (100% - 36px) * ${pos / 100})`, ['--p' as string]: progress }}>
+            {cls === 'in' ? '✓' : ''}
+          </div>
+        )}
+        <span className="needle-end left">♭ flat</span>
+        <span className="needle-end right">sharp ♯</span>
       </div>
       <div className={`needle-word ${state?.justLocked || state?.locked ? 'pop' : ''}`} aria-live="polite">
         {word}
         {c != null && !state?.locked && <span className="needle-cents" aria-hidden="true">{fmtCents(octaveOff ? state!.folded!.pcCents : c)}</span>}
       </div>
-      <div className="hold-bar" role="progressbar" aria-label="Hold progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)}>
-        <div style={{ width: `${progress * 100}%` }} />
-      </div>
+      <div className="sr-only" role="progressbar" aria-label="Hold progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress * 100)} />
     </div>
   );
 }

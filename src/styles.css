@@ -6,8 +6,26 @@
   --text: #e8ebf0;
   --muted: #9aa3b2;
   --green: #5ee0a0;
-  --amber: #f2b84b;
+  /* darker than green on purpose, so "close" and "in tune" differ in brightness too */
+  --amber: #d99a2b;
   --blue: #7cc4ff;
+  /* pitch status: always paired with a shape (filled / half / hollow) or line style */
+  --in: var(--green);
+  --close: var(--amber);
+  --off: var(--muted);
+  --free: var(--blue);
+  --band-in: rgba(94, 224, 160, 0.2);
+  --band-close: rgba(217, 154, 43, 0.12);
+  /* charts and traces */
+  --grid: rgba(255, 255, 255, 0.07);
+  --grid-strong: rgba(255, 255, 255, 0.16);
+  --label: rgba(255, 255, 255, 0.45);
+  --target-line: rgba(255, 255, 255, 0.7);
+  --chart: #9be89b;
+  /* voice registers: none of them green, so green only ever means "in tune" */
+  --reg-low: #b48cff;
+  --reg-chest: #f5a8d0;
+  --reg-falsetto: #7cc4ff;
   --radius: 14px;
   --tap: 44px;
   color-scheme: dark;
@@ -386,26 +404,28 @@ select {
 .needle {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 .needle-meter {
   position: relative;
-  height: 44px;
-  border-radius: 10px;
-  background: var(--surface-2);
-  overflow: hidden;
+  height: 72px;
+  border-radius: 12px;
+  /* tick every 10% of the meter */
+  background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 1px), var(--grid-strong) calc(10% - 1px) 10%) center / 100% 14px no-repeat, var(--surface-2);
 }
 .needle-zone2 {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: rgba(242, 184, 75, 0.12);
+  background: var(--band-close);
 }
 .needle-zone {
   position: absolute;
   top: 0;
   bottom: 0;
-  background: rgba(94, 224, 160, 0.22);
+  background: var(--band-in);
+  border-left: 2px solid var(--in);
+  border-right: 2px solid var(--in);
 }
 .needle-center {
   position: absolute;
@@ -414,48 +434,70 @@ select {
   bottom: 0;
   width: 2px;
   margin-left: -1px;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--target-line);
 }
+/* Marker shape carries the state without colour:
+   off = hollow ring, close = half filled, in tune = filled with a check. */
 .needle-dot {
+  --p: 0;
   position: absolute;
   top: 50%;
-  width: 22px;
-  height: 22px;
-  margin: -11px 0 0 -11px;
+  width: 32px;
+  height: 32px;
+  margin: -16px 0 0 -16px;
   border-radius: 50%;
-  background: var(--muted);
-  border: 3px solid var(--bg);
+  border: 3px solid var(--off);
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  color: var(--bg);
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
   transition: left 60ms linear;
 }
-.needle.in .needle-dot {
-  background: var(--green);
+/* hold ring: fills clockwise only while you hold the note in tune */
+.needle-dot::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 50%;
+  background: conic-gradient(var(--text) calc(var(--p) * 360deg), transparent 0);
+  -webkit-mask: radial-gradient(circle, transparent 19px, #000 20px);
+  mask: radial-gradient(circle, transparent 19px, #000 20px);
 }
 .needle.close .needle-dot {
-  background: var(--amber);
+  border-color: var(--close);
+  background: linear-gradient(90deg, var(--close) 50%, var(--bg) 50%);
+}
+.needle.in .needle-dot {
+  border-color: var(--in);
+  background: var(--in);
 }
 .needle-end {
   position: absolute;
-  bottom: 2px;
-  font-size: 0.65rem;
+  top: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--muted);
 }
 .needle-end.left {
-  left: 6px;
+  left: 10px;
 }
 .needle-end.right {
-  right: 6px;
+  right: 10px;
 }
 .needle-word {
   text-align: center;
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: 700;
-  min-height: 2.2rem;
+  min-height: 2.4rem;
 }
 .needle.in .needle-word {
-  color: var(--green);
+  color: var(--in);
 }
 .needle.close .needle-word {
-  color: var(--amber);
+  color: var(--close);
 }
 .needle-cents {
   font-size: 1rem;
@@ -1470,4 +1512,13 @@ button:focus:not(:focus-visible) {
 }
 .btn.stop {
   border-color: #6b2f2f;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

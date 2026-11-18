@@ -17,7 +17,7 @@ interface Props {
 }
 
 const BLACK = new Set([1, 3, 6, 8, 10]);
-export const REGISTER_COLORS: Record<Register, string> = { low: '#b48cff', chest: '#5ee0a0', falsetto: '#7cc4ff' };
+export const REGISTER_COLORS: Record<Register, string> = { low: 'var(--reg-low)', chest: 'var(--reg-chest)', falsetto: 'var(--reg-falsetto)' };
 
 export function Keyboard({ lo, hi, range, selected, allowed, onPick, colors }: Props) {
   const ref = useRef<HTMLDivElement>(null);

@@ -226,8 +226,8 @@ export function RangeHistory({ history }: { history: RangeRecord[] }) {
       <svg viewBox={`0 0 ${W} ${H}`} className="chart" aria-label="Range history">
         {[lo + 1, Math.round((lo + hi) / 2), hi - 1].map((m) => (
           <g key={m}>
-            <line x1={20} x2={W} y1={y(m)} y2={y(m)} stroke="rgba(255,255,255,0.08)" />
-            <text x={0} y={y(m) + 4} fontSize={10} fill="#9aa3b2">
+            <line x1={20} x2={W} y1={y(m)} y2={y(m)} stroke="var(--grid)" />
+            <text x={0} y={y(m) + 4} fontSize={10} fill="var(--muted)">
               {midiToName(m)}
             </text>
           </g>
@@ -247,7 +247,7 @@ export function RangeHistory({ history }: { history: RangeRecord[] }) {
           )),
         )}
         {recs.map((r, i) => (
-          <text key={`d${i}`} x={x(i)} y={H - 1} fontSize={9} fill="#9aa3b2" textAnchor="middle">
+          <text key={`d${i}`} x={x(i)} y={H - 1} fontSize={9} fill="var(--muted)" textAnchor="middle">
             {new Date(r.ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
           </text>
         ))}
