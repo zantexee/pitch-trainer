@@ -3,6 +3,7 @@ import { getSettings, updateSettings, useSettings } from '../../lib/settings';
 import { saveAttempt } from '../../db/db';
 import { initialState, leverValue, recordOutcome } from '../../engine/adaptive';
 import { INTERVAL_LEVELS, INTERVAL_NAMES, type IntervalDir } from '../../engine/ear';
+import { INTERVAL_INFO } from '../../engine/intervalInfo';
 import type { Timbre } from '../../audio/synth';
 import { useAutoStart } from '../../lib/embed';
 import { bump, weakness, weightedPick } from '../../engine/weights';
@@ -78,7 +79,7 @@ export function Intervals() {
     setTally((x) => ({ n: x.n + 1, ok: x.ok + (correct ? 1 : 0) }));
     void saveAttempt({ ts: Date.now(), module: 'ear-interval', target: `${INTERVAL_NAMES[q.semis]} ${q.dir}`, result: correct ? 'success' : `chose ${INTERVAL_NAMES[semis]}`, centsError: null, octaveError: 0, settleMs: null, stability: null, difficulty: { level: leverValue(LEVERS, ad, 'level') as number } });
     const finished = round.record({ correct, tags: { interval: INTERVAL_NAMES[q.semis], dir: DIR_LABEL[q.dir] }, expected: INTERVAL_NAMES[q.semis], answer: INTERVAL_NAMES[semis] }, 2400);
-    if (!finished) later(next, correct ? 900 : 2600);
+    if (!finished) later(next, correct ? 900 : 4200); // time to read the explanation
   }
 
   return (
@@ -107,14 +108,80 @@ export function Intervals() {
             <RoundStatus round={round} />
             <Answers<number> options={lv.intervals} label={(o) => INTERVAL_NAMES[o]} onAnswer={answer} disabled={chosen != null} reveal={chosen != null ? { correct: q.semis, chosen } : null} />
             <FeedbackLine fb={fb} />
+            {chosen != null && chosen !== q.semis && (
+              <div className="iv-explain">
+                <IntervalCard semis={q.semis} dir={q.dir} onPlay={() => play(q)} />
+                <IntervalCard semis={chosen} dir={q.dir} yours onPlay={() => play({ ...q, semis: chosen })} />
+              </div>
+            )}
             <button className="btn" onClick={() => play(q)}>
               ↻ Replay
             </button>
           </>
         )}
       </section>
+      <IntervalGuide highlight={lv.intervals} />
       </>
       )}
     </EarShell>
+  );
+}
+
+const fmtSemis = (n: number) => (n === 1 ? '1 semitone' : `${n} semitones`);
+
+/** One interval explained: name, size, how it feels, and a tune that starts with it. */
+function IntervalCard({ semis, dir, yours, onPlay }: { semis: number; dir?: IntervalDir; yours?: boolean; onPlay: () => void }) {
+  const info = INTERVAL_INFO[semis];
+  const short = INTERVAL_NAMES[semis];
+  const showUp = dir !== 'down';
+  const showDown = dir !== 'up';
+  return (
+    <div className={`iv-card${yours ? ' yours' : ''}`}>
+      <div className="iv-head">
+        <button className="iv-play" onClick={onPlay} aria-label={`Play ${info.full}`}>
+          ▶
+        </button>
+        <div>
+          {yours && <div className="iv-tag">Your answer</div>}
+          <div className="iv-name">{info.full}</div>
+          <div className="muted iv-size">
+            {short !== info.full && <span translate="no">{short} · </span>}
+            <span>{fmtSemis(semis)}</span>
+          </div>
+        </div>
+      </div>
+      <p className="iv-feel">{info.feel}</p>
+      <div className="iv-songs muted">
+        {showUp && (
+          <div>
+            <span>Going up</span>: <i translate="no">{info.up}</i>
+          </div>
+        )}
+        {showDown && (
+          <div>
+            <span>Going down</span>: <i translate="no">{info.down}</i>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Fold-out reference of every interval, with a play button for each. */
+function IntervalGuide({ highlight }: { highlight: number[] }) {
+  const all = Object.keys(INTERVAL_INFO).map(Number);
+  return (
+    <details className="result-details iv-guide card">
+      <summary>About the intervals</summary>
+      <p className="muted">Tip: hum the start of the tune in your head, then compare. Intervals you are practising now are marked ●.</p>
+      <div className="iv-list">
+        {all.map((n) => (
+          <div key={n} className={highlight.includes(n) ? 'iv-on' : undefined}>
+            {highlight.includes(n) && <span className="iv-dot" aria-hidden="true">●</span>}
+            <IntervalCard semis={n} onPlay={() => playSeq([60, 60 + n, [60, 60 + n]], { dur: 0.6, gap: 0.12 })} />
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }

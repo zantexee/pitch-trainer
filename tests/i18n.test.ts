@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { compile, makeTranslate } from '../src/i18n/translator';
 import { RO } from '../src/i18n/ro';
+import { INTERVAL_INFO } from '../src/engine/intervalInfo';
 
 const tr = makeTranslate(compile(RO));
 
@@ -40,5 +41,15 @@ describe('loose patterns', () => {
     expect(tr('★ New best: 5 in a row')).toBe('★ Record nou: 5 la rând');
     expect(tr('Chest → Falsetto')).toBe('Piept → Falset');
     expect(tr(' · key of B')).toBe(' · tonalitatea B');
+  });
+  it('explains every interval in Romanian', () => {
+    for (const i of Object.values(INTERVAL_INFO)) {
+      expect(tr(i.full)).not.toBe(i.full);
+      expect(tr(i.feel)).not.toBe(i.feel);
+    }
+    expect(tr('Play Minor 3rd')).toBe('Ascultă: Terță mică');
+    expect(tr('1 semitone')).toBe('1 semiton');
+    expect(tr('7 semitones')).toBe('7 semitonuri');
+    expect(tr('3 intervals · ascending, descending')).toBe('3 intervale · ascendent, descendent');
   });
 });

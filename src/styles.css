@@ -1717,3 +1717,66 @@ button:focus:not(:focus-visible) {
   flex-direction: column;
   gap: 10px;
 }
+
+/* ---------- interval explanations ---------- */
+.iv-explain {
+  display: grid;
+  gap: 0.6rem;
+  margin: 0.4rem 0;
+}
+.iv-card {
+  border: 1px solid var(--line, rgba(127, 127, 127, 0.3));
+  border-radius: 12px;
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+}
+.iv-card.yours {
+  opacity: 0.85;
+  border-style: dashed;
+}
+.iv-head {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+}
+.iv-play {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  flex: none;
+}
+.iv-tag {
+  font-size: 0.8rem;
+  color: var(--amber);
+  font-weight: 600;
+}
+.iv-name {
+  font-weight: 650;
+  font-size: 1.05rem;
+}
+.iv-size {
+  font-size: 0.85rem;
+}
+.iv-feel {
+  margin: 0.5rem 0 0.3rem;
+}
+.iv-songs {
+  font-size: 0.9rem;
+  display: grid;
+  gap: 0.15rem;
+}
+.iv-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+.iv-list > div {
+  position: relative;
+}
+.iv-dot {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.7rem;
+  color: var(--green);
+  font-size: 0.7rem;
+}
