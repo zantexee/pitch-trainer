@@ -38,6 +38,9 @@ export function Intervals() {
   const [msg, setMsg] = useState<string | null>(null);
   const later = useLater();
   const round = useRound(DIMS, 'ear-intervals');
+  const [roundDone, setRoundDone] = useState(false);
+  const waiting = q != null && chosen != null && chosen !== q.semis;
+  const goOn = () => (roundDone ? round.end() : next());
 
   useAutoStart(true, () => next());
 
@@ -78,14 +81,16 @@ export function Intervals() {
     } else setMsg(null);
     setTally((x) => ({ n: x.n + 1, ok: x.ok + (correct ? 1 : 0) }));
     void saveAttempt({ ts: Date.now(), module: 'ear-interval', target: `${INTERVAL_NAMES[q.semis]} ${q.dir}`, result: correct ? 'success' : `chose ${INTERVAL_NAMES[semis]}`, centsError: null, octaveError: 0, settleMs: null, stability: null, difficulty: { level: leverValue(LEVERS, ad, 'level') as number } });
-    const finished = round.record({ correct, tags: { interval: INTERVAL_NAMES[q.semis], dir: DIR_LABEL[q.dir] }, expected: INTERVAL_NAMES[q.semis], answer: INTERVAL_NAMES[semis] }, 2400);
-    if (!finished) later(next, correct ? 900 : 4200); // time to read the explanation
+    // A wrong answer waits for Next, so the explanation cards can be read and played.
+    const finished = round.record({ correct, tags: { interval: INTERVAL_NAMES[q.semis], dir: DIR_LABEL[q.dir] }, expected: INTERVAL_NAMES[q.semis], answer: INTERVAL_NAMES[semis] }, correct ? 2400 : null);
+    setRoundDone(finished);
+    if (correct && !finished) later(next, 900);
   }
 
   return (
     <EarShell title="Intervals" score={tally}>
       {round.summary ? (
-        <RoundSummaryCard summary={round.summary} newBest={round.newBest} onAgain={() => (round.reset(), next())}
+        <RoundSummaryCard summary={round.summary} newBest={round.newBest} onAgain={() => (round.reset(), setRoundDone(false), next())}
           confusionLabel={(e, a) => `${e} heard as ${a}`} />
       ) : (
       <>
@@ -113,6 +118,11 @@ export function Intervals() {
                 <IntervalCard semis={q.semis} dir={q.dir} onPlay={() => play(q)} />
                 <IntervalCard semis={chosen} dir={q.dir} yours onPlay={() => play({ ...q, semis: chosen })} />
               </div>
+            )}
+            {waiting && (
+              <button className="btn-huge" onClick={goOn}>
+                Next ›
+              </button>
             )}
             <button className="btn" onClick={() => play(q)}>
               ↻ Replay

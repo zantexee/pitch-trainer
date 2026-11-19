@@ -114,7 +114,8 @@ export function useRound(dims: Dimension[], id: string) {
     embedded: !!embed,
     streak: currentStreak(trials),
     /** Record a trial. Returns true if this trial ends the round. */
-    record(t: TrialRecord, delayMs = 900): boolean {
+    /** delayMs null: don't open the summary by itself; call end() when the user moves on. */
+    record(t: TrialRecord, delayMs: number | null = 900): boolean {
       const next = [...trials, t];
       setTrials(next);
       const run = currentStreak(next);
@@ -125,7 +126,7 @@ export function useRound(dims: Dimension[], id: string) {
       }
       embed?.report({ ok: t.correct, best });
       if (len && next.length >= len) {
-        setTimeout(() => setSummary(summarizeRound(next, dims)), delayMs);
+        if (delayMs != null) setTimeout(() => setSummary(summarizeRound(next, dims)), delayMs);
         return true;
       }
       return false;
